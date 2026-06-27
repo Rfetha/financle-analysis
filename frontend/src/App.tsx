@@ -10,9 +10,13 @@ export function App() {
   async function lookup() {
     setError(null);
     setQuote(null);
-    const resp = await fetch(`/api/quote/${encodeURIComponent(ticker)}`);
-    if (!resp.ok) { setError(`hata: ${resp.status}`); return; }
-    setQuote(await resp.json());
+    try {
+      const resp = await fetch(`/api/quote/${encodeURIComponent(ticker)}`);
+      if (!resp.ok) { setError(`hata: ${resp.status}`); return; }
+      setQuote(await resp.json());
+    } catch (e) {
+      setError(String(e));
+    }
   }
 
   return (
