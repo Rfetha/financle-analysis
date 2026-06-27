@@ -22,6 +22,9 @@ dist/
 # Frontend build copied into the package (generated; CI regenerates)
 backend/sonar/web/static/
 
+# SDD scratch (ledger/briefs)
+.superpowers/
+
 # OS
 .DS_Store
 Thumbs.db
