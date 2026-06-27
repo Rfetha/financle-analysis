@@ -26,4 +26,11 @@ def create_app(registry: MarketRegistry | None = None, cache: Cache | None = Non
     def quote(ticker: str) -> dict:
         return get_quote(ticker, registry=registry, cache=cache, ttl=config.QUOTE_TTL_SECONDS)
 
+    from pathlib import Path
+    from fastapi.staticfiles import StaticFiles
+
+    static_dir = Path(__file__).parent.parent / "web" / "static"
+    if static_dir.exists():
+        app.mount("/", StaticFiles(directory=static_dir, html=True), name="static")
+
     return app

@@ -12,6 +12,9 @@ dependencies = [
 [dependency-groups]
 dev = ["pytest>=8", "pyinstaller>=6.5"]
 
+[project.scripts]
+sonar = "sonar.cli:main"
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
