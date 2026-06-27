@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.uv/
+
+# SQLite
+*.db
+*.db-wal
+*.db-shm
+
+# Node / frontend
+node_modules/
+frontend/dist/
+
+# PyInstaller
+build/
+dist/
+*.manifest
+
+# Frontend build copied into the package (generated; CI regenerates)
+backend/sonar/web/static/
+
+# OS
+.DS_Store
+Thumbs.db
