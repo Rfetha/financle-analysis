@@ -1,9 +1,10 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from sonar import config
 from sonar.store.db import connect
 from sonar.store.cache import Cache
 from sonar.market.registry import MarketRegistry
 from sonar.market.us import USMarketPlugin
+from sonar.market.base import UnknownSymbol
 from sonar.tools.quote import get_quote
 
 
@@ -24,7 +25,10 @@ def create_app(registry: MarketRegistry | None = None, cache: Cache | None = Non
 
     @app.get("/api/quote/{ticker}")
     def quote(ticker: str) -> dict:
-        return get_quote(ticker, registry=registry, cache=cache, ttl=config.QUOTE_TTL_SECONDS)
+        try:
+            return get_quote(ticker, registry=registry, cache=cache, ttl=config.QUOTE_TTL_SECONDS)
+        except UnknownSymbol:
+            raise HTTPException(status_code=404, detail=f"Sembol bulunamadı: {ticker.upper()}")
 
     from pathlib import Path
     from fastapi.staticfiles import StaticFiles
