@@ -1,6 +1,7 @@
 from decimal import Decimal
 import pytest
 from sonar.market.us import USMarketPlugin
+from sonar.market.base import UnknownSymbol
 from sonar.domain.symbol import Symbol
 
 
@@ -13,6 +14,14 @@ def test_us_get_quote_builds_domain_quote():
     assert q.provenance.source == "yfinance"
     assert q.provenance.fetched_at == 123.0
     assert q.change_pct == pytest.approx(10.0)
+
+
+def test_us_get_quote_unknown_symbol_raises():
+    def _bad_fetch(ticker):
+        raise KeyError("exchangeTimezoneName")
+    plugin = USMarketPlugin(fetch=_bad_fetch)
+    with pytest.raises(UnknownSymbol):
+        plugin.get_quote(Symbol("ZZZZQ", "US"))
 
 
 @pytest.mark.slow
