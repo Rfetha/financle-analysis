@@ -73,6 +73,10 @@ dolduran bir **plugin**'dir. Çekirdek, hangi market'in bağlı olduğunu bilmez
 > Teknik/portföy hesapları (RSI, P&L, korelasyon, konsantrasyon) **market plugin'inde
 > değil çekirdekte** — her market için aynı matematik.
 
+> **Ticker bulma:** kullanıcı genelde "AAPL" değil "Apple" yazar. `search_symbols`
+> isim/kısmi/fuzzy → ticker çözmeli (veri: SEC `company_tickers.json` CIK↔ticker↔isim +
+> lokal fuzzy eşleşme). Agent, girdi temiz ticker değilse **önce** `search_symbols` çağırır.
+
 ---
 
 ## 3. Use-case'ler (her birine başarı kriteri)
@@ -203,7 +207,7 @@ artırılan / azaltılan" pozisyonlar; bir hissede net kurumsal akış; insider 
 
 ## 9. v1 → v2 yol haritası (özet)
 
-- **v1:** US plugin · UC1–5 + UC7 · NiceGUI(? §10) web · SQLite · local/Claude/GPT beyin · sabah brief.
+- **v1:** US plugin · UC1–5 + UC7 · Vite+React web (SSE streaming, ADR-0008) · SQLite · LangGraph beyin (Claude/GPT/local) · sabah brief.
 - **v2:** UC6 derin gezgin · 13D/13G · screener tool · push bildirim (Telegram/e-posta) ·
   generative UI (CopilotKit/AG-UI) · TR plugin paketi · backtesting.
 
@@ -215,10 +219,11 @@ artırılan / azaltılan" pozisyonlar; bir hissede net kurumsal akış; insider 
 |---|---|---|
 | Dil & şekil | Python core + TS/React UI, monorepo, OS-başına tek-binary (PyInstaller) | 0001 |
 | Backend | FastAPI | 0001 |
-| Agent framework | PydanticAI (provider-agnostic) | 0002 |
+| Frontend / streaming | Vite+React+TS SPA (SSR yok); SSE uniform (chat + canlı-quote), AG-UI-ready | 0008 |
+| Agent framework | LangGraph (+LangChain), provider-agnostic; chat=ReAct, recipe=StateGraph | 0006/0007 |
 | AI sağlama | tek swappable provider: ChatGPT/Codex-OAuth · Claude (Claude Code üzerinden) · API key; local sonra | 0002 |
 | Tool felsefesi | derin tool — sayı çekirdekte, LLM yalnız sentez | 0003 |
-| Tool taşıma | MCP server (Claude Code/OAuth yolu için) + PydanticAI'a doğrudan — aynı sabit yüzey | 0001/0002 |
+| Tool taşıma | MCP server (Claude Code/OAuth yolu için) + LangGraph agent'a doğrudan — aynı sabit yüzey | 0001/0002 |
 | Saklama | tek SQLite (DB + cache + history + FTS5), WAL; Redis yok; vector DB yok (`sqlite-vec` sleeper) | 0004 |
 | Veri kaynağı v1 | yfinance(+Stooq) · SEC EDGAR · FRED · haber RSS/Finnhub; Polygon/AlphaVantage sonra plugin | — |
 | Dağıtım | CI (GitHub Actions) OS-matrix → binary'ler siteye; ikincil `uv tool`/pipx; üçüncül Docker | 0001 |
