@@ -26,3 +26,13 @@ def test_quote_change_pct():
         provenance=Provenance("yfinance", 0.0),
     )
     assert q.change_pct == pytest.approx(10.0)
+
+
+def test_quote_change_pct_zero_previous_close():
+    q = Quote(
+        symbol=Symbol("AAPL", "US"),
+        price=Money(Decimal("110"), "USD"),
+        previous_close=Money(Decimal("0"), "USD"),
+        provenance=Provenance("yfinance", 0.0),
+    )
+    assert q.change_pct == 0.0
