@@ -47,7 +47,7 @@ arayüzüyle BIST/crypto ekleyebilir — çekirdek değişmez.
 
 ## Lisans
 
-_TBD_ — bkz. `LICENSE` (seçilecek).
+[Apache-2.0](LICENSE) — permissive + patent koruması.
 
 ## Sorumluluk reddi
 
