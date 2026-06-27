@@ -19,3 +19,4 @@ build-backend = "hatchling.build"
 [tool.pytest.ini_options]
 markers = ["slow: gerçek dış ağ çağrısı (yfinance) — varsayılan koşuda atlanır"]
 addopts = "-m 'not slow'"
+filterwarnings = ["ignore:Using .httpx. with .starlette.testclient. is deprecated"]
