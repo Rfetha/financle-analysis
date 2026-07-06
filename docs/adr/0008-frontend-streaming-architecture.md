@@ -31,6 +31,11 @@ macro snapshot, deep-analysis raporu, portföy/watchlist CRUD.
 - `<MessagePart>` renderer → **part-type → React component registry** (M1: text/tool_call/
   tool_result; v2: agent-driven `component` tipleri eklenir).
 - SSE event tipleri AG-UI'ın event tipleriyle (text-delta, tool-call-start/args/end…) hizalı.
+- **Part/event taksonomisini sıfırdan icat etme:** referans = `huggingface/tau`
+  (`tau_agent/events`) — çalışan bir agent-stream sözleşmesi. Oradan taşınacak set:
+  `text-delta` · `tool-call` · `tool-result` · `reasoning` · `error` · `usage/context`
+  (token/bağlam muhasebesi). Sonar-özel ek: M2'de `quote-tick` · `chart`. Taksonomi M1'de
+  bu tam listeyle kurulur ki M2 quote-SSE **genişletme** olsun, yeniden yazma değil.
 
 ## Consequences
 - **M0 etkilenmez** (chat M1, quote-stream M2; M0 quote tek-seferlik fetch). M0 minimal kalır.

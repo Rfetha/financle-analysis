@@ -12,7 +12,7 @@ subagent-driven yürütülür. Sıra: plan → subagent-driven execute → final
 | M | Ne ekler (deliverable) | Definition of Done (verify) | ~Task | Durum | Plan |
 |---|---|---|---|---|---|
 | **M0** | Walking skeleton: tek binary, ticker→fiyat (LLM yok) | `dist/sonar` → tarayıcı → "AAPL" → gerçek fiyat; katmanlar uçtan uca bağlı | 10 | ✅ merged | [m0](superpowers/plans/2026-06-27-m0-walking-skeleton.md) |
-| **M1** | Agent omurgası: LangGraph chat (ReAct) + `/api/chat` **SSE** + chat kutusu + MessagePart/registry | "AAPL fiyat" chat'ten gelir; token-token akar; tool-adımı görünür | ~8 | ⏳ planlı | TBD |
+| **M1** | Agent omurgası: LangGraph chat (ReAct) + `/api/chat` **SSE** + chat kutusu + MessagePart/registry | "AAPL fiyat" chat'ten gelir; token-token akar; tool-adımı görünür | ~8 | ✅ kod¹ | `17fd126` |
 | **M2** | Deep analiz (UC1): ohlcv/technicals(elle)/fundamentals/news/macro/peers + DeepAnalysis recipe + interaktif grafik + `/api/stream/quotes` SSE | "NVDA analiz" → top-down rapor + Lightweight Chart | ~14 | ⏳ planlı | TBD |
 | **M3** | Portföy/Watchlist (UC2/3): aggregate'ler + repo + P&L + paneller | P&L elle = eşleşir; konsantrasyon flag | ~10 | ⏳ planlı | TBD |
 | **M4** | Büyük oyuncular: EDGAR 13F/Form4 + HoldingsSnapshot/InsiderTrade + Δ | EDGAR/Dataroma ile eşleşir | ~10 | ⏳ planlı | TBD |
@@ -21,13 +21,19 @@ subagent-driven yürütülür. Sıra: plan → subagent-driven execute → final
 
 **Toplam ≈ 72 task.** Mantık: M0–M1 mimariyi kanıtlar · M2 asıl değeri (derin analiz) · M3–M5 genişletir · M6 cilalar+dağıtır.
 
-> **M1 öncesi düzeltilecek (M0 final review bulguları):**
-> 1. Paylaşılan `sqlite3.Connection` → per-request/thread-local (concurrent SSE + tool çağrıları yarışmasın).
-> 2. Geçersiz ticker → `float(None)` 500 yerine `UnknownSymbol` (LLM ticker üretince kritik).
-> 3. `@types/react` v19 ↔ React 18 runtime uyumsuzluğu → pin.
-> 4. `sonar.spec` hiddenimports'a `httpx` ekle (temiz makinede binary doğrula).
-> 5. `test_static.py` else-branch tautology → `pytest.skip`.
-> Ayrıca M0'dan biriken kozmetik Minor'lar (kullanılmayan import, type annotation, yfinance API yorumu) M1 CI/lint pass'inde temizlenir.
+> ¹ **M1 kodu master'da** (`17fd126`): agent + `/api/chat` SSE + chat UI + MessagePart
+> registry; 25 test yeşil (tool wiring + SSE event map). **Canlı token akışı (DoD) gerçek
+> API key ister** — `ANTHROPIC_API_KEY` (+ opsiyonel `SONAR_MODEL`); key'siz koşuda endpoint
+> düzgün `error` event'i döner. Kalan: canlı doğrulama + kozmetik lint pass. **Henüz push'suz.**
+
+> **M1 öncesi review bulguları ✅ çözüldü** (`764bc4b` merged):
+> shared-conn → `threading.Lock`; unknown ticker → 404; `@types/react` ^18 pin;
+> `sonar.spec` httpx; `test_static` `pytest.skip`. Kozmetik minor'lar (kullanılmayan import,
+> type annotation, yfinance yorumu) → M1 CI/lint pass'inde (bekliyor).
+
+> **M1 tasarım notları (`huggingface/tau` referanslı):**
+> - Part/event taksonomisi sıfırdan icat edilmez → tau `tau_agent/events` referans; tam liste ADR-0008'de.
+> - Chat-persistence şeması **append-only** kurulur (compact ≠ rewrite) → ADR-0004.
 
 ## Bağlayıcı kararlar (her milestone bunlara uyar)
 - Tool yüzeyi sabit, borsalar plugin (ADR-0001/0005) · derin tool, sayı çekirdekte (ADR-0003)

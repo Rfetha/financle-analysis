@@ -5,6 +5,13 @@ kullanıcı/app state (portföy, watchlist, alert, brief), snapshot history (13F
 **TTL'li cache tablosu** ve **FTS5** tam-metin arama. **WAL modu** açık (web-reader +
 scheduler-writer çakışmasın).
 
+## History append-only (chat + snapshot)
+Geçmiş **insert-only**: chat mesajları ve snapshot history (13F/insider) satırları sonradan
+silinmez/güncellenmez. **Context compaction ≠ kayıt yeniden yazma** — LLM'e gönderilen aktif
+bağlamı kısaltmak, tabloya dokunmadan (ayrı bir "compacted view" / özet satırı ile) yapılır.
+Ders: `huggingface/tau` (append-only JSONL session) — kaydı bozmadan resume/branch bedava
+gelir. M1 chat-persistence şeması bunu **baştan** kurar; sonradan eklemek migration demek.
+
 ## Considered Options
 - **Redis cache:** reddedildi — ekstra servis + ops, tek-binary dağıtımı bozar, tek
   kullanıcıda ölçülebilir fayda yok. Cache bir **arayüz** arkasında durur; gerçekten
