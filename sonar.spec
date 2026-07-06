@@ -9,6 +9,7 @@ hiddenimports = (
     + collect_submodules("starlette")
     + collect_submodules("anyio")
     + collect_submodules("multipart")
+    + collect_submodules("httpx")
     + ["anyio._backends._asyncio", "anyio._backends._trio"]
 )
 
