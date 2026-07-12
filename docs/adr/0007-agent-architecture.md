@@ -23,6 +23,12 @@ bugün, Codex CLI ileride).
   yavaş, güvenilmez, ADR-0003'e aykırı.
 - **Reçeteler düz Python (graf değil):** reddedildi (alt-karar) — web canlı tool-adımı
   streaming + AG-UI hazırlığı için tek-tip LangGraph tercih edildi.
+- **`deepagents` harness'ı (LangChain):** reddedildi — asıl değeri context yönetimi
+  (auto-compact + büyük tool çıktısını dosyaya offload) ve dinamik planlama/subagent. Bizde
+  tool çıktısı hesaplanmış ve küçük (ADR-0003) → overflow tasarımla yok; reçete sabit →
+  planlama tool'u boşta. Ayrıca LangChain chat model'i (API key) ister; varsayılan abonelik
+  yolunu (Claude Code SDK) süremez → aynı işi yapan ikinci harness bakımı. **Yeniden açma
+  koşulu:** api-key provider'larında subagent/planlama paritesi gerçekten istenirse.
 
 ## Consequences
 - LLM karar yüzeyi minimum → güvenilirlik + düşük token; ADR-0003 ile uyumlu.

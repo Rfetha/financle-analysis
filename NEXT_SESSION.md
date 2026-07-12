@@ -22,8 +22,14 @@
 - `api/app.py`: `POST /api/chat` → SSE; auth/provider/tool hatası → tek `error` event.
 - `frontend/chat.tsx`: fetch+ReadableStream SSE parser · part-type→component registry · koyu minimal UI.
 
+**Manuel test ✅ (2026-07-12, tarayıcı):** fiyat · çoklu ticker · bilinmeyen sembol (uydurmadı) ·
+kapsam-dışı soruda dürüst ret · tool'suz sohbet. Tek bulgu → aşağıda (kimlik sızıntısı).
+
 ## Hemen sıradaki iş (bu sırayla)
 
+0. **Kimlik sızıntısı fix (küçük)** — ajan "Anthropic'in Claude Agent SDK'sı üzerine kurulu"
+   diye tanıtıyor kendini. `graph.SYSTEM`'e tek satır: implementasyon/provider detayını paylaşma
+   (ürün duruşu = sağlayıcı-bağımsız). SDK ve ReAct yolları aynı SYSTEM'i kullanır.
 1. **Push** — `master` → origin.
 2. **UI design pass** — `impeccable:frontend-design`, yön = **TradingView-vari** (koyu/modern/data-dense;
    memory: `ui-design-direction`). M1 UI şu an işlevsel-ama-minimal; tasarım sistemi + v1 wireframe'ler.
