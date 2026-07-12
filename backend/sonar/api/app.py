@@ -25,23 +25,26 @@ def _default_registry() -> MarketRegistry:
 def create_app(
     registry: MarketRegistry | None = None,
     cache: Cache | None = None,
-    agent=None,
+    streamer=None,
 ) -> FastAPI:
     app = FastAPI(title="Sonar")
     registry = registry or _default_registry()
     cache = cache or Cache(connect(config.DB_PATH))
 
-    def _get_agent():
-        # Agent'ı lazy kur: LLM/model init ilk chat isteğinde (API key gerekir).
-        nonlocal agent
-        if agent is None:
-            from sonar.agent.graph import build_agent
-            from sonar.agent.model import default_model
-            from sonar.agent.tools import make_quote_tool
+    def _get_streamer():
+        # Provider'a göre agent'ı lazy kur (ADR-0002): abonelik → Claude Code SDK loop'u,
+        # API-key → LangGraph ReAct. İkisi de aynı (message, thread_id) -> SSE event akışı.
+        nonlocal streamer
+        if streamer is None:
+            if config.PROVIDER == "claude-code":
+                from sonar.agent.claude_code import make_streamer
+            else:
+                from sonar.agent.graph import make_streamer
 
-            tool = make_quote_tool(registry=registry, cache=cache, ttl=config.QUOTE_TTL_SECONDS)
-            agent = build_agent(model=default_model(), tools=[tool])
-        return agent
+            streamer = make_streamer(
+                registry=registry, cache=cache, ttl=config.QUOTE_TTL_SECONDS
+            )
+        return streamer
 
     @app.get("/api/health")
     def health() -> dict[str, str]:
@@ -57,15 +60,12 @@ def create_app(
     @app.post("/api/chat")
     async def chat(req: ChatRequest) -> StreamingResponse:
         async def stream():
-            config_ = {"configurable": {"thread_id": req.thread_id or "default"}}
             try:
-                agent_ = _get_agent()
-                async for ev in agent_.astream_events(
-                    {"messages": [("user", req.message)]}, config=config_, version="v2"
+                async for etype, data in _get_streamer()(
+                    req.message, req.thread_id or "default"
                 ):
-                    for etype, data in events.map_lc_event(ev):
-                        yield events.sse(etype, data)
-            except Exception as e:  # provider/key/tool hatası → tek error event, sessiz düşme yok
+                    yield events.sse(etype, data)
+            except Exception as e:  # provider/auth/tool hatası → tek error event, sessiz düşme yok
                 yield events.sse(events.ERROR, {"message": str(e)})
             yield events.sse(events.DONE, {})
 

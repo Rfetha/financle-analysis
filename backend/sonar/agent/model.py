@@ -1,7 +1,8 @@
-"""Tek swappable AI provider (ADR-0002) — M1'de yalnız API-key yolu.
+"""Tek swappable AI provider (ADR-0002) — API-key yolu (LangGraph ReAct).
 
 Provider/model env ile seçilir (`SONAR_MODEL`, ör. "anthropic:claude-sonnet-5"
-ya da "openai:gpt-4o"). Settings UI + OAuth/MCP yolları M6.
+ya da "openai:gpt-4o"); bu yol `SONAR_PROVIDER=api-key` ile açılır. Varsayılan yol
+abonelik: `sonar/agent/claude_code.py`. Settings UI M6.
 """
 
 import os

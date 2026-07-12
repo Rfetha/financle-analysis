@@ -3,7 +3,10 @@
 Üç giriş noktası, use-case'e göre **iki şekil**:
 
 - **Chat (UC7):** LangGraph `create_react_agent` — **dinamik** tool seçimi; `SqliteSaver`
-  ile thread memory (aynı SQLite, ADR-0004).
+  ile thread memory (aynı SQLite, ADR-0004). **İstisna (ADR-0002):** provider = Claude
+  aboneliği ise chat döngüsünü **Claude Code SDK** sürer (ToS; kendi loop'umuzda abonelik
+  kullanılamaz) — tool'lar aynı çekirdek, SSE taksonomisi aynı; fark yalnız döngünün kimde
+  olduğu. ReAct yolu API-key provider'larında geçerli.
 - **DeepAnalysis (UC1) & Brief (UC4):** deterministik **StateGraph** — `gather` node deep
   tool'ları **paralel** çağırır (LLM yok), `synthesize` node **tek** LLM çağrısıyla anlatıyı
   yazar. Sabit reçete (ReAct yok).
