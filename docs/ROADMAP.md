@@ -12,7 +12,7 @@ subagent-driven yürütülür. Sıra: plan → subagent-driven execute → final
 | M | Ne ekler (deliverable) | Definition of Done (verify) | ~Task | Durum | Plan |
 |---|---|---|---|---|---|
 | **M0** | Walking skeleton: tek binary, ticker→fiyat (LLM yok) | `dist/sonar` → tarayıcı → "AAPL" → gerçek fiyat; katmanlar uçtan uca bağlı | 10 | ✅ merged | [m0](superpowers/plans/2026-06-27-m0-walking-skeleton.md) |
-| **M1** | Agent omurgası: LangGraph chat (ReAct) + `/api/chat` **SSE** + chat kutusu + MessagePart/registry | "AAPL fiyat" chat'ten gelir; token-token akar; tool-adımı görünür | ~8 | ✅ kod¹ | `17fd126` |
+| **M1** | Agent omurgası: chat agent + `/api/chat` **SSE** + chat kutusu + MessagePart/registry | "AAPL fiyat" chat'ten gelir; token-token akar; tool-adımı görünür | ~8 | ✅ DoD¹ | `ca55072` |
 | **M2** | Deep analiz (UC1): ohlcv/technicals(elle)/fundamentals/news/macro/peers + DeepAnalysis recipe + interaktif grafik + `/api/stream/quotes` SSE | "NVDA analiz" → top-down rapor + Lightweight Chart | ~14 | ⏳ planlı | TBD |
 | **M3** | Portföy/Watchlist (UC2/3): aggregate'ler + repo + P&L + paneller | P&L elle = eşleşir; konsantrasyon flag | ~10 | ⏳ planlı | TBD |
 | **M4** | Büyük oyuncular: EDGAR 13F/Form4 + HoldingsSnapshot/InsiderTrade + Δ | EDGAR/Dataroma ile eşleşir | ~10 | ⏳ planlı | TBD |
@@ -21,10 +21,11 @@ subagent-driven yürütülür. Sıra: plan → subagent-driven execute → final
 
 **Toplam ≈ 72 task.** Mantık: M0–M1 mimariyi kanıtlar · M2 asıl değeri (derin analiz) · M3–M5 genişletir · M6 cilalar+dağıtır.
 
-> ¹ **M1 kodu master'da** (`17fd126`): agent + `/api/chat` SSE + chat UI + MessagePart
-> registry; 25 test yeşil (tool wiring + SSE event map). **Canlı token akışı (DoD) gerçek
-> API key ister** — `ANTHROPIC_API_KEY` (+ opsiyonel `SONAR_MODEL`); key'siz koşuda endpoint
-> düzgün `error` event'i döner. Kalan: canlı doğrulama + kozmetik lint pass. **Henüz push'suz.**
+> ¹ **M1 DoD karşılandı** (`ca55072`): `/api/chat` uçtan uca sürüldü → `tool-call` →
+> `tool-result` → token-token `text-delta` → `done`; 31 test yeşil. Varsayılan provider
+> **`claude-code`** (abonelik, ADR-0002): API key gerekmez, döngüyü Claude Code SDK sürer
+> (ToS istisnası ADR-0007'de). `SONAR_PROVIDER=api-key` → LangGraph ReAct + `SONAR_MODEL`.
+> Kalan: kozmetik lint pass (M6 CI'ye kadar bekleyebilir).
 
 > **M1 öncesi review bulguları ✅ çözüldü** (`764bc4b` merged):
 > shared-conn → `threading.Lock`; unknown ticker → 404; `@types/react` ^18 pin;
