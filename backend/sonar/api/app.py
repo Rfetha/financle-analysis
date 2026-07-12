@@ -1,5 +1,8 @@
+import time
+
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import StreamingResponse
+from loguru import logger
 from pydantic import BaseModel
 from sonar import config
 from sonar.store.db import connect
@@ -60,13 +63,27 @@ def create_app(
     @app.post("/api/chat")
     async def chat(req: ChatRequest) -> StreamingResponse:
         async def stream():
+            thread = req.thread_id or "default"
+            started = time.perf_counter()
+            logger.info("chat[{}] ← {!r} (provider={})", thread, req.message, config.PROVIDER)
+            deltas = 0
             try:
-                async for etype, data in _get_streamer()(
-                    req.message, req.thread_id or "default"
-                ):
+                async for etype, data in _get_streamer()(req.message, thread):
+                    if etype == events.TEXT_DELTA:
+                        deltas += 1  # tek tek loglamak gürültü; sonda sayısı yazılır
+                    elif etype == events.TOOL_CALL:
+                        logger.info("chat[{}] tool → {}({})", thread, data["name"], data["input"])
+                    elif etype == events.TOOL_RESULT:
+                        logger.info("chat[{}] tool ← {} {:.200}", thread, data["name"], data["output"])
+                    elif etype == events.ERROR:
+                        logger.error("chat[{}] agent hatası: {}", thread, data["message"])
                     yield events.sse(etype, data)
             except Exception as e:  # provider/auth/tool hatası → tek error event, sessiz düşme yok
+                logger.exception("chat[{}] akış çöktü", thread)
                 yield events.sse(events.ERROR, {"message": str(e)})
+            logger.info(
+                "chat[{}] ✓ {} text-delta, {:.1f}s", thread, deltas, time.perf_counter() - started
+            )
             yield events.sse(events.DONE, {})
 
         return StreamingResponse(stream(), media_type="text/event-stream")
