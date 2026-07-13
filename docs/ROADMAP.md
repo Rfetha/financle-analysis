@@ -13,13 +13,22 @@ subagent-driven yürütülür. Sıra: plan → subagent-driven execute → final
 |---|---|---|---|---|---|
 | **M0** | Walking skeleton: tek binary, ticker→fiyat (LLM yok) | `dist/sonar` → tarayıcı → "AAPL" → gerçek fiyat; katmanlar uçtan uca bağlı | 10 | ✅ merged | [m0](superpowers/plans/2026-06-27-m0-walking-skeleton.md) |
 | **M1** | Agent omurgası: chat agent + `/api/chat` **SSE** + chat kutusu + MessagePart/registry | "AAPL fiyat" chat'ten gelir; token-token akar; tool-adımı görünür | ~8 | ✅ DoD¹ | `ca55072` |
-| **M2** | Deep analiz (UC1): ohlcv/technicals(elle)/fundamentals/news/macro/peers + DeepAnalysis recipe + interaktif grafik + `/api/stream/quotes` SSE | "NVDA analiz" → top-down rapor + Lightweight Chart | ~14 | ⏳ planlı | TBD |
+| **M2** | Deep analiz (UC1) **+ Big Players**: Alpaca fiyat · EDGAR fundamentals/13F/Form4 · FRED makro · teknikler(elle) · news · peers + DeepAnalysis recipe + grafik + `/api/stream/quotes` SSE | **A:** "NVDA" → top-down rapor + Lightweight Chart · **B:** "NVDA'yı kim aldı" → filer + Δ | ~24 | ⏳ planlı³ | [spec](superpowers/specs/2026-07-13-m2-deep-analysis-and-big-players-design.md) |
 | **M3** | Portföy/Watchlist (UC2/3): aggregate'ler + repo + P&L + paneller | P&L elle = eşleşir; konsantrasyon flag | ~10 | ⏳ planlı | TBD |
-| **M4** | Büyük oyuncular: EDGAR 13F/Form4 + HoldingsSnapshot/InsiderTrade + Δ | EDGAR/Dataroma ile eşleşir | ~10 | ⏳ planlı | TBD |
+| ~~M4~~ | ~~Büyük oyuncular~~ → **M2'ye alındı** (aynı EDGAR altyapısı) | — | — | ↗ M2 | — |
 | **M5** | Otonomi (UC4/5): APScheduler + Brief recipe + Alert | sabah brief oluşur; alert cooldown'lı tetikler | ~10 | ⏳ planlı | TBD |
 | **M6** | Model katmanı + dağıtım: settings UI (model/endpoint seçimi) · local runtime yönetimi (llama-server indir/spawn, **detect-first**) · CI binary matrix | Settings'ten model seçilir; local tek tıkla ayağa kalkar (ayakta olan endpoint'e dokunulmaz); CI OS-matrix binary üretir | ~10 | ⏳ planlı² | TBD |
 
-**Toplam ≈ 72 task.** Mantık: M0–M1 mimariyi kanıtlar · M2 asıl değeri (derin analiz) · M3–M5 genişletir · M6 cilalar+dağıtır.
+**Toplam ≈ 72 task.** Mantık: M0–M1 mimariyi kanıtlar · M2 asıl değeri (derin analiz + büyük oyuncular) ·
+M3/M5 genişletir · M6 cilalar+dağıtır.
+
+> ³ **M2, eski M4'ü içine aldı** (2026-07-13): fundamentals (EDGAR companyfacts) ile 13F/Form 4 **aynı**
+> altyapıyı (ticker↔CIK + rate-limitli SEC istemcisi) kullanıyor; ayrı milestone tutmak aynı işi iki kez
+> yaptırırdı. Tek spec, **iki faz**, arada merge kapısı: **Faz A** derin analiz (tek başına shippable) →
+> **Faz B** big players. Faz B **spike ile başlar** (13F toplu veri seti + CUSIP→ticker eşleşme oranı
+> ölçülür); geçmezse küratörlü filer evrenine düşer. "Önce ölç, sonra kur" — M6'daki disiplinin aynısı.
+> Fiyat kaynağı **Alpaca**'ya geçti (resmî API + WebSocket); key yoksa yfinance fallback + görünür
+> kaynak şeridi.
 
 > ¹ **M1 DoD karşılandı** (`ca55072`): `/api/chat` uçtan uca sürüldü → `tool-call` →
 > `tool-result` → token-token `text-delta` → `done`. **Güncelleme (2026-07-13):** M1'de yazılan
