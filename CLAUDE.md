@@ -72,8 +72,10 @@ FRED · feedparser · APScheduler · uv · PyInstaller · Vite+React+TS · Light
 Teknik göstergeler **elle yazılır** (numpy/pandas, ADR-0006) — TA-Lib/pandas-ta yok.
 
 ## Doküman haritası
+- **Mimari (as-built, önce burayı oku): `docs/ARCHITECTURE.md`**
 - Vizyon/use-case: `docs/superpowers/specs/2026-06-27-financle-us-equity-agent-design.md`
 - Domain (aggregate/VO): `docs/superpowers/specs/2026-06-27-domain-model.md`
+- Model katmanı (local-first): `docs/superpowers/specs/2026-07-13-model-layer-local-first-design.md`
 - Kararlar: `docs/adr/0001..0008`
 - Milestone: `docs/ROADMAP.md` · Milestone planları: `docs/superpowers/plans/`
 - Katkı/dev: `CONTRIBUTING.md`

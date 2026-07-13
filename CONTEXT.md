@@ -59,12 +59,25 @@ Bir HoldingsSnapshot içindeki tek pozisyon (Symbol + adet + değer + ağırlık
 **Provenance**:
 Dışarıdan gelen her verinin kaynağı + çekilme zamanı.
 
+**Quote**:
+Bir Symbol'ün anlık fiyatı + günlük % değişimi + Provenance'ı. Değişmez; Market'ten gelir, hesaplanmış
+gelir (ham tick değil).
+
+**Deep Tool**:
+Ajanın çağırdığı, **hesaplanmış ve yapılandırılmış** sonuç dönen tool. "Derin" = işi tool yapar, model
+yalnız sentezler; ham veri döndüren tool sığdır ve kabul edilmez.
+
+**Unsupported**:
+Bir Market'in veremediği yetenek için dönen açık cevap. Sessiz boş sonuç değil — "bu borsa bunu vermiyor"
+demenin resmî yolu.
+
 ### Analiz katmanları
 **Macro**: Ekonomi/sektör rejimi (faiz, enflasyon, getiri eğrisi, DXY, VIX).
 **Micro**: Şirket + sektör konumu (değerleme, büyüme, marj, rakip kıyas).
 **Technical**: Fiyat aksiyonu (trend, momentum, destek/direnç).
 
 ## Relationships
+- A **Deep Tool** returns a computed result (e.g. a **Quote**) or **Unsupported**
 - A **Portfolio** holds many **Positions**
 - A **Position** / **Watchlist** entry references one symbol in one **Market**
 - **Big Players** = **Institutional Holders** + **Insiders** for a symbol
