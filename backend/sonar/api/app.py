@@ -35,14 +35,10 @@ def create_app(
     cache = cache or Cache(connect(config.DB_PATH))
 
     def _get_streamer():
-        # Provider'a göre agent'ı lazy kur (ADR-0002): abonelik → Claude Code SDK loop'u,
-        # API-key → LangGraph ReAct. İkisi de aynı (message, thread_id) -> SSE event akışı.
+        # Agent'ı lazy kur: model init ilk chat isteğinde (model katmanı env'den seçer).
         nonlocal streamer
         if streamer is None:
-            if config.PROVIDER == "claude-code":
-                from sonar.agent.claude_code import make_streamer
-            else:
-                from sonar.agent.graph import make_streamer
+            from sonar.agent.graph import make_streamer
 
             streamer = make_streamer(
                 registry=registry, cache=cache, ttl=config.QUOTE_TTL_SECONDS
@@ -65,7 +61,7 @@ def create_app(
         async def stream():
             thread = req.thread_id or "default"
             started = time.perf_counter()
-            logger.info("chat[{}] ← {!r} (provider={})", thread, req.message, config.PROVIDER)
+            logger.info("chat[{}] ← {!r} (model={})", thread, req.message, config.MODEL)
             deltas = 0
             try:
                 async for etype, data in _get_streamer()(req.message, thread):
