@@ -93,6 +93,15 @@ döndürür ve o model listelenmez. "Tool'suz çalışan sağlayıcı" kabul edi
 Bedeli: ReAct'in çok-adımlılığı (sonuca bakıp ikinci tool'u çağırma) kaybolur; dispatch tek-atışlık olur.
 **Tetik:** Qwen3 14B kabul kriterini geçemezse değerlendirilir.
 
+## Settings ekranı (v1)
+
+Local kurulumu **kullanıcı yapar**, Sonar yol gösterir: Settings panelinde endpoint durumu
+(bağlı / bağlı değil), seçili model, "bağlantıyı test et" butonu ve llama-server'ı çalıştıran komut
+(kopyalanabilir). Bağlı değilse chat'teki `error` event'i de aynı yönlendirmeyi verir.
+
+**Non-goal (şimdilik):** llama-server'ı Sonar'ın subprocess olarak başlatması, GGUF indirmesi, VRAM'e
+göre `-ngl` seçmesi. Bu paketleme işidir (M6) — OS/GPU başına binâri dağıtımı gerektirir.
+
 ## Model seçimi: finans-FT model kullanmıyoruz
 
 Fin-R1 gibi finansa fine-tune edilmiş modeller (Qwen2.5-7B tabanlı, FinQA/ConvFinQA'da güçlü) bizim
