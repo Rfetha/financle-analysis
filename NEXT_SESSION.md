@@ -2,58 +2,62 @@
 
 > Bir sonraki oturum için handoff. Tam bağlam: `CLAUDE.md` · `docs/ROADMAP.md` · `docs/adr/`.
 
-## Nerede kaldık (2026-07-12)
+## Nerede kaldık (2026-07-13)
 
-**M1 (Agent omurgası) DoD kapandı — abonelik yolu canlı doğrulandı. PUSH'SUZ.**
+**M1 DoD kapandı. Provider mimarisi yeniden kuruldu: tek loop + local-first. PUSH'SUZ.**
 
-- `master` origin'in **4 commit önünde** (M1 + Claude Code SDK provider yolu).
-- **31 test yeşil**. Canlı akış: "AAPL fiyatı ne?" → `tool-call` → `tool-result` → `text-delta`
-  (API key kullanılmadan, lokal Claude Code auth'u ile).
+- `master` origin'in **7+ commit önünde** (push kimlik sorunu: repo `Rfetha/...`, gh `RfethaEgeist`
+  ile giriş yapmış → `gh auth login` ile kişisel hesaba geçmek gerek).
+- **31 test yeşil.**
 
-### M1'de ne var
-- **İki provider yolu, tek arayüz** (`make_streamer(registry, cache, ttl) -> (message, thread_id)
-  -> SSE event akışı`), `SONAR_PROVIDER` ile seçilir:
-  - `claude-code` (**varsayılan**, ADR-0002 abonelik önceliği): döngüyü Claude Code SDK sürer
-    (ToS gereği — kendi loop'umuzda abonelik kullanılamaz). Quote tool = in-process SDK MCP tool;
-    dahili Read/Bash/Edit kapalı, `setting_sources=[]` (repo ayarları sızmaz). `sonar/agent/claude_code.py`.
-  - `api-key`: LangGraph `create_react_agent` (ReAct) + `SONAR_MODEL` (`sonar/agent/graph.py`).
-- `sonar/agent/events.py`: tek SSE taksonomisi (text-delta/tool-call/tool-result/error/done, ADR-0008);
-  iki kaynak (`map_lc_event` · `map_sdk_message`) aynı event'lere düşer → frontend registry değişmedi.
-- `api/app.py`: `POST /api/chat` → SSE; auth/provider/tool hatası → tek `error` event.
-- `frontend/chat.tsx`: fetch+ReadableStream SSE parser · part-type→component registry · koyu minimal UI.
+### Mimari değişiklik (2026-07-13) — spec + ADR'ler güncel
+Claude Code SDK yolu **söküldü**. Gerekçe (ADR-0002'de tam metin): abonelik OAuth'u üçüncü-parti
+üründe yasak (Anthropic ToS, Şubat 2026 → Nisan'da uygulandı; ihlal = **kullanıcının** hesabı banlanır);
+ToS-uyumlu tek yol olan SDK ise uygulamayı dış bir binary'nin davranışına (versiyon kayması) ve
+sağlayıcının fatura politikasına bağlıyordu.
 
-**Manuel test ✅ (2026-07-12, tarayıcı):** fiyat · çoklu ticker · bilinmeyen sembol (uydurmadı) ·
-kapsam-dışı soruda dürüst ret · tool'suz sohbet. Tek bulgu → aşağıda (kimlik sızıntısı).
+**Yeni şekil:**
+- **Tek loop:** chat = LangGraph ReAct, provider ne olursa olsun (ADR-0007).
+- **Model katmanı** (`sonar/agent/model.py`): `SONAR_MODEL="<provider>:<model>"`
+  - `local:qwen3-14b` (**varsayılan**) → llama-server `http://localhost:8080/v1`, key yok
+  - `openrouter:<model>` → `OPENROUTER_API_KEY`
+  - `anthropic:` / `openai:` → ilgili key
+  - `SONAR_BASE_URL` ile Ollama/LM Studio/gateway'e yönlenir. Local ve OpenRouter aynı
+    OpenAI-uyumlu istemciden geçer (fark: `base_url`).
+- **Katman sınırı testli:** `tests/test_layering.py` — `api/ tools/ domain/ store/ market/` içinde
+  provider ithali (langchain/langgraph/openai/anthropic) yasak.
+- **Non-goal oldu:** MCP "harici beyin" kapısı · deepagents · finansa-FT beyin modeli.
+
+Spec: `docs/superpowers/specs/2026-07-13-model-layer-and-mcp-door-design.md`
 
 ## Hemen sıradaki iş (bu sırayla)
 
-0. **Kimlik sızıntısı fix (küçük)** — ajan "Anthropic'in Claude Agent SDK'sı üzerine kurulu"
-   diye tanıtıyor kendini. `graph.SYSTEM`'e tek satır: implementasyon/provider detayını paylaşma
-   (ürün duruşu = sağlayıcı-bağımsız). SDK ve ReAct yolları aynı SYSTEM'i kullanır.
-1. **Push** — `master` → origin.
-2. **UI design pass** — `impeccable:frontend-design`, yön = **TradingView-vari** (koyu/modern/data-dense;
-   memory: `ui-design-direction`). M1 UI şu an işlevsel-ama-minimal; tasarım sistemi + v1 wireframe'ler.
-3. **M2 (Deep analiz)** — `writing-plans` → `subagent-driven-development`. Bkz ROADMAP M2.
+1. **Local tool-calling ölçümü (bağlayıcı karar noktası)** — llama-server + Qwen3 14B Q4 ile 5 vaka:
+   tek ticker · çoklu ticker · bilinmeyen sembol · kapsam dışı (PE) · sohbet (tool çağırmamalı).
+   ```powershell
+   cd C:\tools\llama
+   .\llama-server.exe -m models\Qwen3-14B-Q4_K_M.gguf --jinja -c 16384 -ngl 99 --port 8080
+   ```
+   **Geçerse** local varsayılan kalır → managed launcher yazılır (GGUF indirme + spawn + Settings;
+   detect-first: endpoint'te sunucu varsa Sonar süreç başlatmaz). **Geçmezse** önce llama.cpp grammar
+   zorlaması, o da yetmezse varsayılan OpenRouter'a döner (ADR-0002 bu tetiği yazıyor).
+2. **Push** — `master` → origin (kimlik düzeltildikten sonra).
+3. **UI design pass** — `impeccable:frontend-design`, yön = TradingView-vari (memory: `ui-design-direction`).
+4. **M2 (Deep analiz)** — Bkz ROADMAP M2. Reçeteler döngü kullanmaz → provider'dan bağımsız.
 
 ## Bilinen açıklar / notlar
-- **Kozmetik lint pass** M1'de yapılmadı (kullanılmayan import vб.) → CI/lint kurulunca temizlenir.
-- `dist/sonar.exe` eski (M0 500-bug'lı build). Ayrıca **abonelik yolu Claude Code CLI'ının kurulu
-  olmasını gerektirir** (SDK onu subprocess olarak sürer) → tek-binary paketlemede ya CLI şartı
-  yazılır ya da o build `SONAR_PROVIDER=api-key` ile gider. M6 (settings UI) kararı.
-- Chat-persistence tek-oturum: ReAct yolunda `MemorySaver`, SDK yolunda process-içi
-  `thread_id -> session_id` dict. Kalıcılık → `SqliteSaver` / SDK `session_store` (aynı DB, ADR-0004).
+- **Chat artık key'siz çalışmıyor**: ya llama-server ayakta olacak ya OpenRouter key'i verilecek.
+  (Bilinçli bedel — ADR-0002.)
+- Chat-persistence tek-oturum (`MemorySaver`). Kalıcılık → `SqliteSaver` (aynı DB, ADR-0004).
+- `dist/sonar.exe` eski (M0 build). Kozmetik lint pass yapılmadı.
 
-## Çalıştırma / test / build
+## Çalıştırma / test
 ```bash
-cd backend && uv run pytest          # 25 passed
+cd backend && uv run pytest          # 31 passed
 cd backend && uv run pytest -m slow  # gerçek yfinance
-cd backend && uv run sonar           # uygulama (chat için API key gerekir)
+cd backend && uv run sonar           # uygulama (local model ya da OPENROUTER_API_KEY gerekir)
 cd frontend && npm run dev           # 2-process dev (/api → :8000 proxy)
 ```
 
-## Branch durumu
-- `master` = ana hat (M0 + pre-M1 fix + M1), **push bekliyor**.
-- `fix/pre-m1-review`, `m0-walking-skeleton`, `fix/quote-robustness-and-license` = merged, silinebilir.
-
 ## Açık karar yok
-LICENSE Apache-2.0 · UI yönü TradingView-vari · M1 kod tamam. Sıra: canlı doğrulama → push → UI pass → M2.
+Sıra: local ölçümü → (launcher ya da bulut varsayılanı) → push → UI pass → M2.
