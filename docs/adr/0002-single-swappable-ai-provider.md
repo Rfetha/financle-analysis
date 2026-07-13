@@ -38,5 +38,5 @@ OpenRouter key'i ya da local model gerekir.
 - **Ölçüldü (2026-07-13, RTX 5070 12 GB):** Qwen3 14B Q4 beş-vakalık tool-calling testini **5/5 geçti**;
   43.8 tok/s decode, yanıt 5–14 sn, VRAM 10.6/12.2. "Local ertelendi (kalite yetersiz)" kararı kalktı.
   Spekülatif decoding ölçüldü, kazanç vermedi → alınmadı. KV quant (q8_0) alındı: hız aynı, 2× context.
-  Ayrıntı: `docs/superpowers/specs/2026-07-13-model-layer-and-mcp-door-design.md`.
+  Ayrıntı: `docs/superpowers/specs/2026-07-13-model-layer-local-first-design.md`.
 - Server ayakta değilse chat, komutu içeren açık bir `error` event'i döner (`model.explain`).

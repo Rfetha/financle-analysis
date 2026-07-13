@@ -1,4 +1,4 @@
-# Model katmanı: OpenRouter · local · API key — tasarım
+# Model katmanı: local-first (llama.cpp) · kaçış kapısı API key — tasarım
 
 **Tarih:** 2026-07-13 · **Durum:** onay bekliyor · **İlgili:** ADR-0002 (provider), ADR-0007 (agent mimarisi)
 
@@ -22,9 +22,11 @@ her kullanıcı taşır, o yüzden masada değil.
 
 ## Karar
 
-**Tek beyin, tek loop: LangGraph.** Model katmanı OpenAI-uyumlu bir istemciyle her sağlayıcıyı bağlar
-(OpenRouter · local · doğrudan API key). Claude Code SDK uygulamadan **sökülür**; abonelik yolu
-tamamen düşer — Sonar kendi akıllı uygulaması olarak durur, beynini bir dış istemciden ödünç almaz.
+**Sonar = local-first uygulama.** Beyin kullanıcının kendi makinesinde koşar (llama.cpp + Qwen3 14B Q4);
+local koşamayan ya da istemeyen kullanıcı için kaçış kapısı API key (OpenRouter / Anthropic / OpenAI).
+**Tek beyin, tek loop: LangGraph.** Model katmanı OpenAI-uyumlu tek istemciyle hepsini bağlar.
+Claude Code SDK **sökülür**, abonelik yolu düşer, **MCP kapısı tamamen atılır** — Sonar beynini dış
+istemciye ödünç vermez, dış istemciden de ödünç almaz.
 
 ```
 ┌ UI / API ────────────────────────────────┐
@@ -194,8 +196,8 @@ Import taraması yapan bir test bunu koruma altına alır — katmanlamanın laf
 
 - Uygulama içinde Claude Code SDK / Agent SDK.
 - Abonelik OAuth token'ını kendi loop'umuzda kullanmak (ToS, ban riski).
-- MCP server ("harici beyin" kapısı) — Sonar kendi akıllı uygulaması; dış istemciye beyin ödünç vermek
-  ürünün yönü değil. (ADR-0007'deki MCP cümlesi buna göre güncellenecek.)
+- **MCP server ("harici beyin" kapısı) — tamamen düştü.** Sonar kendi uygulaması; beynini dış istemciye
+  ödünç vermez, dış istemciden de ödünç almaz. (ADR-0007'deki MCP cümlesi kaldırıldı.)
 - `deepagents` harness'ı (ADR-0007'de gerekçesiyle reddedildi).
 - Finansa fine-tune edilmiş beyin modeli (yukarıda gerekçelendirildi).
 - Chat'in çok-adımlılığından vazgeçmek (Needle yalnız ölçüm tetiklerse ve ayrı tartışmayla gelir).

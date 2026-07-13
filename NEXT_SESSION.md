@@ -28,7 +28,7 @@ sağlayıcının fatura politikasına bağlıyordu.
   provider ithali (langchain/langgraph/openai/anthropic) yasak.
 - **Non-goal oldu:** MCP "harici beyin" kapısı · deepagents · finansa-FT beyin modeli.
 
-Spec: `docs/superpowers/specs/2026-07-13-model-layer-and-mcp-door-design.md`
+Spec: `docs/superpowers/specs/2026-07-13-model-layer-local-first-design.md`
 
 ### Local model: ÖLÇÜLDÜ ve KİLİTLENDİ (2026-07-13)
 Qwen3 14B Q4 tool-calling kabul testi **5/5 geçti** → local varsayılan kesin. Motor **llama.cpp** (kilit).

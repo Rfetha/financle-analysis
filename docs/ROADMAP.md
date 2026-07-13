@@ -32,7 +32,7 @@ subagent-driven yürütülür. Sıra: plan → subagent-driven execute → final
 > ² **M6 sıralaması bağlayıcı: önce ölç, sonra kur.** Local runtime yönetimi (indirme + spawn +
 > Settings) ancak Qwen3 14B Q4 beş-vakalık tool-calling testini **geçerse** yazılır; geçmezse
 > varsayılan OpenRouter'a döner ve launcher yazılmaz
-> (spec: [model katmanı](superpowers/specs/2026-07-13-model-layer-and-mcp-door-design.md)).
+> (spec: [model katmanı](superpowers/specs/2026-07-13-model-layer-local-first-design.md)).
 
 > **M1 öncesi review bulguları ✅ çözüldü** (`764bc4b` merged):
 > shared-conn → `threading.Lock`; unknown ticker → 404; `@types/react` ^18 pin;

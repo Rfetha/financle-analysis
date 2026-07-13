@@ -242,7 +242,7 @@ artırılan / azaltılan" pozisyonlar; bir hissede net kurumsal akış; insider 
 > - **Tool taşıma:** **MCP server yok** — Sonar beynini dış istemciye ödünç vermez; tool'lar tek
 >   yerden (LangGraph agent'ına `@tool` + reçetelere doğrudan Python çağrısı) taşınır. → ADR-0007.
 >
-> Detay: [model katmanı spec'i](2026-07-13-model-layer-and-mcp-door-design.md).
+> Detay: [model katmanı spec'i](2026-07-13-model-layer-local-first-design.md).
 
 ---
 

@@ -1,6 +1,6 @@
 """Katman sınırı: model/agent dışındaki katmanlar provider kütüphanelerini görmez.
 
-Spec: docs/superpowers/specs/2026-07-13-model-layer-and-mcp-door-design.md
+Spec: docs/superpowers/specs/2026-07-13-model-layer-local-first-design.md
 Bu test olmadan "katmanlı mimari" laftan ibaret — provider ithali sessizce sızar.
 """
 
