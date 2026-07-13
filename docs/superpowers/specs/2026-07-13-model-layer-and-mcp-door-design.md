@@ -54,10 +54,15 @@ SONAR_API_KEY   = <opsiyonel override>     # provider'ın kendi env'i de kabul
 
 | provider | model örneği | endpoint | key |
 |---|---|---|---|
-| `openrouter` **(varsayılan)** | `anthropic/claude-sonnet-4.6` | `https://openrouter.ai/api/v1` | `OPENROUTER_API_KEY` |
-| `local` | `qwen3:14b-q4` | `http://localhost:8080/v1` (llama-server) | yok |
+| `local` **(varsayılan)** | `qwen3-14b-q4` | `http://localhost:8080/v1` (llama-server) | yok |
+| `openrouter` | `anthropic/claude-sonnet-4.6` | `https://openrouter.ai/api/v1` | `OPENROUTER_API_KEY` |
 | `anthropic` | `claude-sonnet-5` | resmi | `ANTHROPIC_API_KEY` |
 | `openai` | `gpt-5` | resmi | `OPENAI_API_KEY` |
+
+**Varsayılan local:** hiçbir env değişkeni verilmeden `uv run sonar` çalışır ve local modeli kullanır —
+key yok, ücret yok, veri dışarı çıkmaz. Ön koşul: makinede `llama-server` ayakta (aşağıdaki komut).
+Ayakta değilse chat açık bir `error` event'i döner ("local model çalışmıyor: llama-server'ı başlat ya da
+`SONAR_MODEL=openrouter:...` ver") — sessiz düşme yok, sessiz buluta kaçış da yok.
 
 `openrouter` ve `local` OpenAI-uyumlu olduğu için **tek istemci** (`langchain-openai`) ikisini de
 sürer — aralarındaki fark yalnız `base_url`. Yeni bir gateway eklemek = tablo satırı, kod değil.
@@ -65,16 +70,22 @@ sürer — aralarındaki fark yalnız `base_url`. Yeni bir gateway eklemek = tab
 **Zorunlu yetenek: tool-calling.** Sağlayıcı/model bunu veremiyorsa model katmanı `Unsupported`
 döndürür ve o model listelenmez. "Tool'suz çalışan sağlayıcı" kabul edilmez.
 
-## Local runtime
+## Local runtime (varsayılan yol)
 
-- **Çalıştırıcı:** `llama.cpp` / `llama-server` — OpenAI-uyumlu endpoint verir; ayrıca grammar/şablon
-  zorlamasıyla tool çağrısını **yapısal olarak garanti** edebilir (küçük model bocalarsa asıl kaldıraç bu).
-- **Model:** **Qwen3 14B Q4** (~9 GB; RTX 5070 12 GB'a 8–16k context ile sığar). Tool-calling'de bilinen
-  güçlü aday.
+- **Çalıştırıcı:** `llama.cpp` / `llama-server` — OpenAI-uyumlu endpoint verir; ayrıca `--jinja` +
+  grammar zorlamasıyla tool çağrısını **yapısal olarak garanti** edebilir (küçük model bocalarsa asıl
+  kaldıraç bu, ekstra model değil).
+- **Model:** **Qwen3 14B Q4_K_M** (~9 GB; RTX 5070 12 GB'a 8–16k context ile sığar). Tool-calling'de
+  bilinen güçlü aday.
+- **Çalıştırma:**
+  ```bash
+  llama-server -m qwen3-14b-q4_k_m.gguf --jinja -c 16384 -ngl 99 --port 8080
+  ```
 - **Kabul kriteri (5 vaka, log'daki `tool →` satırlarından ölçülür):** tek ticker → 1 doğru çağrı ·
   çoklu ticker → her biri için ayrı çağrı · bilinmeyen sembol → uydurmadan hata anlatısı · kapsam dışı
-  soru → tool'a gitmeden dürüst ret · sohbet sorusu → gereksiz tool çağırmama. Geçerse local varsayılan
-  olabilir; geçmezse "deneysel/offline" etiketiyle kalır, varsayılan OpenRouter.
+  soru → tool'a gitmeden dürüst ret · sohbet sorusu → gereksiz tool çağırmama.
+- **Geçemezse:** önce grammar zorlaması denenir; o da yetmezse local "deneysel" etiketine düşer ve
+  varsayılan OpenRouter olur (ADR-0002'deki "local ertelendi" kararı bu ölçümle güncellenir).
 
 **Opsiyon (ölçüme bağlı, şimdi yazılmaz):** tool seçimi bocalarsa döngünün iki işini ayır —
 *dispatch* (hangi tool + argüman) küçük ve uzmanlaşmış bir modele ([Needle](https://github.com/cactus-compute/needle),
