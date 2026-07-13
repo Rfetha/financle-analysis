@@ -93,14 +93,34 @@ döndürür ve o model listelenmez. "Tool'suz çalışan sağlayıcı" kabul edi
 Bedeli: ReAct'in çok-adımlılığı (sonuca bakıp ikinci tool'u çağırma) kaybolur; dispatch tek-atışlık olur.
 **Tetik:** Qwen3 14B kabul kriterini geçemezse değerlendirilir.
 
-## Settings ekranı (v1)
+## Local runtime yönetimi (Settings)
 
-Local kurulumu **kullanıcı yapar**, Sonar yol gösterir: Settings panelinde endpoint durumu
-(bağlı / bağlı değil), seçili model, "bağlantıyı test et" butonu ve llama-server'ı çalıştıran komut
-(kopyalanabilir). Bağlı değilse chat'teki `error` event'i de aynı yönlendirmeyi verir.
+Kurulum yükü **Sonar'da**: az bilen kullanıcı tek tıkla çalışabilmeli. Ama bu, model seçimini
+kısıtlamaz — üst katmanlar zaten yalnız bir OpenAI-uyumlu `base_url` görüyor.
 
-**Non-goal (şimdilik):** llama-server'ı Sonar'ın subprocess olarak başlatması, GGUF indirmesi, VRAM'e
-göre `-ngl` seçmesi. Bu paketleme işidir (M6) — OS/GPU başına binâri dağıtımı gerektirir.
+**Altın kural: Sonar önce dinler, sonra konuşur.** Ayarlı endpoint'te bir sunucu zaten cevap veriyorsa
+(`GET /v1/models`) hiçbir süreç başlatılmaz, ona bağlanılır. Sonar yalnızca **kendi başlattığı** süreci
+yönetir ve kapanışta onu sonlandırır (rollback: spawn başarısızsa yarım süreç bırakma, port'u serbest bırak).
+
+| kullanıcı | Settings'te | Sonar ne yapar |
+|---|---|---|
+| "hiçbir şey bilmiyorum" | Model: Qwen3 14B Q4 → **İndir & Başlat** | GGUF'u indirir (ilerleme UI'da), llama-server'ı subprocess başlatır |
+| "kendi GGUF'um var" | Özel GGUF yolu | onu `-m` ile başlatır |
+| "zaten Ollama/LM Studio kullanıyorum" | Endpoint: `http://localhost:11434/v1` | hiçbir şey başlatmaz, oraya bağlanır |
+
+Settings ayrıca: endpoint durumu (bağlı/değil), seçili model, "bağlantıyı test et". Bağlı değilse
+chat `error` event'i aynı yönlendirmeyi verir.
+
+**Gerçek maliyet runtime dağıtımı** (model seçimi değil): llama-server binâri OS+GPU'ya göre değişir
+(CUDA / Vulkan / CPU). İki seçenek — (a) kullanıcı llama.cpp'yi kurar, Settings'te yolunu gösterir,
+Sonar başlatır (ucuz); (b) Sonar resmi llama.cpp release asset'ini platforma göre indirir (sürüm pin +
+checksum + ilerleme). (a) ile başlanır, (b) paketlemede (M6) değerlendirilir.
+
+**Sıralama (bağlayıcı): önce ölç, sonra kur.**
+1. Chat local'de uçtan uca çalışsın (llama-server elle başlatılır).
+2. 5 vakalık tool-calling testi (aşağıdaki kabul kriteri).
+3. **Geçerse** managed launcher yazılır (indirme + spawn + Settings). **Geçmezse** varsayılan buluta
+   döner ve launcher yazılmaz — aksi halde çöpe gidecek işe birkaç gün harcarız.
 
 ## Model seçimi: finans-FT model kullanmıyoruz
 
