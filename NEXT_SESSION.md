@@ -30,20 +30,25 @@ sağlayıcının fatura politikasına bağlıyordu.
 
 Spec: `docs/superpowers/specs/2026-07-13-model-layer-and-mcp-door-design.md`
 
-## Hemen sıradaki iş (bu sırayla)
+### Local model: ÖLÇÜLDÜ ve KİLİTLENDİ (2026-07-13)
+Qwen3 14B Q4 tool-calling kabul testi **5/5 geçti** → local varsayılan kesin. Motor **llama.cpp** (kilit).
+Kilit komut (ölçülmüş: 43.8 tok/s, 16k context, VRAM 10.6/12.2):
+```powershell
+cd C:\tools\llama
+.\llama-server.exe -m models\Qwen3-14B-Q4_K_M.gguf --jinja -fa on -c 16384 -ctk q8_0 -ctv q8_0 -ngl 99 --port 8080
+```
+Spekülatif decoding ölçüldü → kazanç yok, alınmadı. KV quant (q8_0) alındı → hız aynı, 2× context.
+Server ayakta değilse chat, komutu içeren açık `error` event'i döner (`model.explain`).
 
-1. **Local tool-calling ölçümü (bağlayıcı karar noktası)** — llama-server + Qwen3 14B Q4 ile 5 vaka:
-   tek ticker · çoklu ticker · bilinmeyen sembol · kapsam dışı (PE) · sohbet (tool çağırmamalı).
-   ```powershell
-   cd C:\tools\llama
-   .\llama-server.exe -m models\Qwen3-14B-Q4_K_M.gguf --jinja -c 16384 -ngl 99 --port 8080
-   ```
-   **Geçerse** local varsayılan kalır → managed launcher yazılır (GGUF indirme + spawn + Settings;
-   detect-first: endpoint'te sunucu varsa Sonar süreç başlatmaz). **Geçmezse** önce llama.cpp grammar
-   zorlaması, o da yetmezse varsayılan OpenRouter'a döner (ADR-0002 bu tetiği yazıyor).
-2. **Push** — `master` → origin (kimlik düzeltildikten sonra).
-3. **UI design pass** — `impeccable:frontend-design`, yön = TradingView-vari (memory: `ui-design-direction`).
-4. **M2 (Deep analiz)** — Bkz ROADMAP M2. Reçeteler döngü kullanmaz → provider'dan bağımsız.
+## Hemen sıradaki iş (sen seç)
+
+- **M2 (Deep analiz)** — asıl değer. ROADMAP M2. Reçeteler döngü kullanmaz → provider'dan bağımsız;
+  sentez adımı için model katmanına `synthesize` portu doğacak.
+- **Managed launcher** (M6'dan öne çekilebilir) — GGUF indirme + llama-server spawn + Settings ekranı;
+  **detect-first**: endpoint'te sunucu varsa Sonar süreç başlatmaz (kullanıcının Ollama/LM Studio'suna
+  dokunmaz). Az bilen kullanıcı için "tek tık".
+- **UI design pass** — `impeccable:frontend-design`, TradingView-vari (memory: `ui-design-direction`).
+- **Push** — `master` → origin; kimlik düzeltmesi gerekiyor (repo `Rfetha/...`, gh `RfethaEgeist`).
 
 ## Bilinen açıklar / notlar
 - **Chat artık key'siz çalışmıyor**: ya llama-server ayakta olacak ya OpenRouter key'i verilecek.

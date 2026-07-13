@@ -1,6 +1,7 @@
 # Sonar
 
-> US-equity araştırma & portföy asistanı — açık kaynak, provider-bağımsız, otonom çalışabilir.
+> US-equity araştırma & portföy asistanı — açık kaynak, **local-first** (kendi GPU'nda çalışır,
+> veri dışarı çıkmaz), otonom çalışabilir. Local koşamıyorsan/istemiyorsan API key ile buluta bağlan.
 
 **Durum:** erken geliştirme. **M1 (agent omurgası)** tamam — chat'ten sorup token-token akan
 cevap, araç adımları görünür. Tüm yol haritası: [`docs/ROADMAP.md`](docs/ROADMAP.md).
@@ -37,9 +38,16 @@ Tek model, tek loop (LangGraph). Model `SONAR_MODEL="<provider>:<model>"` ile se
 | `anthropic` · `openai` | `openai:gpt-5` | resmi | ilgili key |
 
 Varsayılan yol **local**: key yok, ücret yok, veri makineden çıkmaz — ön koşul makinede
-`llama-server`'ın ayakta olması. `SONAR_BASE_URL` ile Ollama/LM Studio/gateway'e yönlendirilir.
-Chat için ya local model ayakta olmalı ya da bir OpenRouter key'i verilmeli; **abonelik
-(Claude/ChatGPT) ile çalışma yolu yok** (sağlayıcı ToS'u, hesap ban riski — [ADR-0002](docs/adr/0002-single-swappable-ai-provider.md)).
+`llama-server`'ın ayakta olması (motor: **llama.cpp**):
+
+```bash
+llama-server -m Qwen3-14B-Q4_K_M.gguf --jinja -fa on -c 16384 -ctk q8_0 -ctv q8_0 -ngl 99 --port 8080
+```
+
+Ölçülmüş yapılandırma (RTX 5070 12 GB): ~44 tok/s, 16k context, VRAM 10.6 GB; tool-calling kabul
+testinde 5/5. `SONAR_BASE_URL` ile Ollama/LM Studio/gateway'e yönlendirilir. Chat için ya local model
+ayakta olmalı ya da bir OpenRouter key'i verilmeli; **abonelik (Claude/ChatGPT) ile çalışma yolu yok**
+(sağlayıcı ToS'u, hesap ban riski — [ADR-0002](docs/adr/0002-single-swappable-ai-provider.md)).
 
 ## Geliştirme
 

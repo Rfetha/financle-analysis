@@ -15,14 +15,34 @@ import os
 
 from langchain.chat_models import init_chat_model
 from langchain_openai import ChatOpenAI
+from openai import APIConnectionError
 
 DEFAULT_MODEL = "local:qwen3-14b"
 LOCAL_BASE_URL = "http://localhost:8080/v1"  # llama-server
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 
+LOCAL_RUN_HINT = (
+    "Local model çalışmıyor. llama-server'ı başlat:\n"
+    "  llama-server -m Qwen3-14B-Q4_K_M.gguf --jinja -fa on -c 16384 "
+    "-ctk q8_0 -ctv q8_0 -ngl 99 --port 8080\n"
+    "…ya da buluta geç: SONAR_MODEL=openrouter:<model> + OPENROUTER_API_KEY"
+)
+
+
+def _spec() -> tuple[str, str]:
+    provider, _, name = os.environ.get("SONAR_MODEL", DEFAULT_MODEL).partition(":")
+    return provider, name
+
+
+def explain(exc: Exception) -> str:
+    """Kullanıcıya gösterilecek hata metni — local'de en sık hata 'server ayakta değil'."""
+    if isinstance(exc, APIConnectionError) and _spec()[0] == "local":
+        return LOCAL_RUN_HINT
+    return str(exc)
+
 
 def default_model():
-    provider, _, name = os.environ.get("SONAR_MODEL", DEFAULT_MODEL).partition(":")
+    provider, name = _spec()
     override = os.environ.get("SONAR_BASE_URL")
 
     if provider == "local":

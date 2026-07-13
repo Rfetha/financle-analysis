@@ -74,9 +74,11 @@ def create_app(
                     elif etype == events.ERROR:
                         logger.error("chat[{}] agent hatası: {}", thread, data["message"])
                     yield events.sse(etype, data)
-            except Exception as e:  # provider/auth/tool hatası → tek error event, sessiz düşme yok
+            except Exception as e:  # model/auth/tool hatası → tek error event, sessiz düşme yok
+                from sonar.agent.model import explain
+
                 logger.exception("chat[{}] akış çöktü", thread)
-                yield events.sse(events.ERROR, {"message": str(e)})
+                yield events.sse(events.ERROR, {"message": explain(e)})
             logger.info(
                 "chat[{}] ✓ {} text-delta, {:.1f}s", thread, deltas, time.perf_counter() - started
             )

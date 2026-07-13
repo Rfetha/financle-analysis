@@ -77,9 +77,9 @@ döndürür ve o model listelenmez. "Tool'suz çalışan sağlayıcı" kabul edi
   kaldıraç bu, ekstra model değil).
 - **Model:** **Qwen3 14B Q4_K_M** (~9 GB; RTX 5070 12 GB'a 8–16k context ile sığar). Tool-calling'de
   bilinen güçlü aday.
-- **Çalıştırma (ölçülmüş ayar):**
+- **Çalıştırma (kilit yapılandırma — ölçülmüş):**
   ```bash
-  llama-server -m Qwen3-14B-Q4_K_M.gguf --jinja -fa on -c 8192 -ngl 99 --port 8080
+  llama-server -m Qwen3-14B-Q4_K_M.gguf --jinja -fa on -c 16384 -ctk q8_0 -ctv q8_0 -ngl 99 --port 8080
   ```
 - **Kabul kriteri (5 vaka):** tek ticker → 1 doğru çağrı · çoklu ticker → her biri için ayrı çağrı ·
   bilinmeyen sembol → uydurmadan hata anlatısı · kapsam dışı soru → tool'a gitmeden dürüst ret ·
@@ -87,27 +87,47 @@ döndürür ve o model listelenmez. "Tool'suz çalışan sağlayıcı" kabul edi
 
 ### Ölçüm sonucu (2026-07-13, RTX 5070 12 GB)
 
-**5/5 geçti → local varsayılan kalıyor.** Grammar zorlamasına gerek kalmadı; Needle tetiği ateşlenmedi.
+**5/5 geçti → local varsayılan kesinleşti.** Grammar zorlamasına gerek kalmadı; Needle tetiği ateşlenmedi.
 
-| | `-c 16384` (fa yok) | **`-fa on -c 8192`** |
-|---|---|---|
-| decode | 14–16 tok/s | **42 tok/s** |
-| prompt eval | ~90 tok/s | **~340 tok/s** |
-| tek ticker / sohbet | 30.4 s / 17.7 s | **13.3 s / 5.9 s** |
-| VRAM | 11.7 / 12.2 GB (sınırda) | 10.9 / 12.2 GB |
+| yapılandırma | decode | VRAM | context | tool 5/5 | karar |
+|---|---|---|---|---|---|
+| `-c 16384` (fa yok) | 15 tok/s | 11.7 GB | 16k | ✅ | ❌ KV cache taşıyor → yarı hız |
+| `-fa on -c 8192` | 42 tok/s | 10.9 GB | 8k | ✅ | temel |
+| + spekülatif decoding (Qwen3-0.6B taslak; n-max 16 / 4) | 40 / 42.7 tok/s | 10.4 GB | 8k | ✅ | ❌ **kazanç yok** |
+| `-fa on -c 8192 -ctk/-ctv q8_0` | 43.3 tok/s | 10.0 GB | 8k | ✅ | ara adım |
+| **`-fa on -c 16384 -ctk/-ctv q8_0`** | **43.8 tok/s** | **10.6 GB** | **16k** | ✅ | ✅ **kilit** |
 
-Flash attention olmadan 16k KV cache VRAM'i doldurup paylaşımlı RAM'e sızdırıyor → decode yarı hız.
-8k context bizim akışlarımıza fazlasıyla yetiyor. **Launcher bu bayrakları kullanacak.**
+- **Flash attention şart:** onsuz 16k KV cache VRAM'i doldurup paylaşımlı RAM'e sızdırıyor, decode yarıya iniyor.
+- **Spekülatif decoding alınmadı:** teoride kayıpsız kazanç, pratikte sıfır — 12 GB kartta 14B-Q4 zaten
+  bellek bant genişliğine takılı; taslak model aynı bandı paylaşınca kazancı geri veriyor (+610 MB VRAM,
+  +bir model dosyası bedavaya giderdi).
+- **KV quant (q8_0) alındı:** hız aynı, ~900 MB kazanç → **aynı bütçeyle 2× context** (uzun oturumlar,
+  M2'nin uzun analiz akışları). Kaybı ölçülemedi (5/5 korundu).
+- **Uydurma kontrolü:** "PE oranı" sorusu 3 kez koşuldu — 3/3 tool'a gitmeden "elimde yok" dedi, sayı
+  uydurmadı.
 
-Kalan iki bulgu (bloke etmez): model karşılaştırmada aritmetiği kendi yaptı (ADR-0003 sınırı — M2'de
-karşılaştırma tool'u kapatır) · system prompt'taki "Sen Sonar'sın" ifadesini cevaba yansıtıyor
-("Ben Sen Sonar") → prompt düzeltmesi.
+Ölçümde çıkan iki prompt kusuru düzeltildi (`graph.SYSTEM`): model kendi aritmetik yapıyordu (ADR-0003
+sınırı) ve altyapısını anlatıyordu ("Ben Sen Sonar…").
 
 **Opsiyon (ölçüme bağlı, şimdi yazılmaz):** tool seçimi bocalarsa döngünün iki işini ayır —
 *dispatch* (hangi tool + argüman) küçük ve uzmanlaşmış bir modele ([Needle](https://github.com/cactus-compute/needle),
 26M, MIT; girdi = soru + JSON tool tanımları, çıktı = `{tool, args}`), *sentez* (anlatı) büyük modele.
 Bedeli: ReAct'in çok-adımlılığı (sonuca bakıp ikinci tool'u çağırma) kaybolur; dispatch tek-atışlık olur.
 **Tetik:** Qwen3 14B kabul kriterini geçemezse değerlendirilir.
+
+## Inference motoru: llama.cpp (kilit)
+
+Alternatifler değerlendirildi ve elendi — **bizim yükümüz: Windows · 12 GB VRAM · tek kullanıcı ·
+GGUF · tool-calling.**
+
+| motor | neden değil |
+|---|---|
+| **vLLM** | PagedAttention + continuous batching **çok eşzamanlı istek** için; tek kullanıcıda kazanç yok. Windows'ta pratikte WSL şart, ağırlık formatı AWQ/GPTQ/FP8. Yanlış problem için doğru araç. |
+| **Ollama** | Zaten llama.cpp sarmalayıcısı; kurulum kolaylığı verir ama grammar / spekülatif decoding / KV quant bayraklarını gizler. Kurulumu biz yöneteceğiz (launcher) → kazancı yok. Kullanıcı zaten çalıştırıyorsa **detect-first** ile destekleniyor. |
+| **TensorRT-LLM** | Model başına engine derleme, kırılgan Windows desteği, GGUF yok. Deneysel projede bakım maliyeti > kazanç. |
+
+**Karar ucuz:** motor `base_url`'ün arkasında; değiştirmek model katmanında tek satır, üst katmanlar
+değişmez.
 
 ## Local runtime yönetimi (Settings)
 
