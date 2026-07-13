@@ -18,6 +18,9 @@ asistanı: portföyünü ve takip listeni izler, tek bir hisseyi (teknik + temel
 - **OSS, global.** Herkes kendi anahtarını / kendi modelini getirir. Repo'da sır yok.
 - **Provider-bağımsız beyin.** Aynı sistem local open-weight model (Ollama) ile de,
   Claude/GPT API ile de çalışır. Kullanıcı seçer.
+  > **Güncelleme (2026-07-13):** hâlâ geçerli, ama şekli netleşti — model katmanı
+  > (`SONAR_MODEL="<provider>:<model>"`) **varsayılan local** (llama-server + Qwen3 14B),
+  > yanında OpenRouter / API key. Abonelik (Claude/ChatGPT OAuth) yolu **yok**. → ADR-0002.
 - **Lazy v1.** Üç alanı da (derin analiz / portföy+otonomi / büyük oyuncular) kapsar
   ama her birini **ince ve sağlam** tutar. Derinleşme v2.
 
@@ -165,6 +168,9 @@ artırılan / azaltılan" pozisyonlar; bir hissede net kurumsal akış; insider 
 - **Çıktı:** Brief sayfası (UI), alert listesi, opsiyonel push (e-posta/Telegram — v2).
 - **Beyin:** otonom işler için **local model (Ollama) varsayılan** — bedava, ToS sorunu
   yok, sürekli çalışmaya uygun. Zor analizde Claude/GPT'ye yükseltilebilir (kullanıcı açarsa).
+  > **Güncelleme (2026-07-13):** local varsayılan kaldı (llama-server + Qwen3 14B Q4), ama
+  > **iş başına model yükseltme yok**: Sonar herhangi bir anda **tek** model kullanır
+  > (`SONAR_MODEL`), otonom iş de chat de aynı modelden geçer. → ADR-0002.
 - **Manuel mod:** UI açıkken kullanıcı aynı işleri elle tetikler (chat / butonlar).
 
 ---
@@ -227,6 +233,16 @@ artırılan / azaltılan" pozisyonlar; bir hissede net kurumsal akış; insider 
 | Saklama | tek SQLite (DB + cache + history + FTS5), WAL; Redis yok; vector DB yok (`sqlite-vec` sleeper) | 0004 |
 | Veri kaynağı v1 | yfinance(+Stooq) · SEC EDGAR · FRED · haber RSS/Finnhub; Polygon/AlphaVantage sonra plugin | — |
 | Dağıtım | CI (GitHub Actions) OS-matrix → binary'ler siteye; ikincil `uv tool`/pipx; üçüncül Docker | 0001 |
+
+> **Güncelleme (2026-07-13) — "AI sağlama" ve "Tool taşıma" satırları geçersiz:**
+> - **AI sağlama:** ChatGPT/Codex-OAuth ve Claude-Code yolları **düştü** (abonelik OAuth = ToS
+>   ihlali/ban riski; SDK = versiyon+fatura riski). Yerine **model katmanı**: `SONAR_MODEL=
+>   "<provider>:<model>"` — varsayılan `local:qwen3-14b` (llama-server), `openrouter:` · doğrudan
+>   API key. "Local sonra" değil, **local varsayılan**. → ADR-0002.
+> - **Tool taşıma:** **MCP server yok** — Sonar beynini dış istemciye ödünç vermez; tool'lar tek
+>   yerden (LangGraph agent'ına `@tool` + reçetelere doğrudan Python çağrısı) taşınır. → ADR-0007.
+>
+> Detay: [model katmanı spec'i](2026-07-13-model-layer-and-mcp-door-design.md).
 
 ---
 

@@ -61,7 +61,7 @@ def create_app(
         async def stream():
             thread = req.thread_id or "default"
             started = time.perf_counter()
-            logger.info("chat[{}] ← {!r} (model={})", thread, req.message, config.MODEL)
+            logger.info("chat[{}] ← {!r}", thread, req.message)
             deltas = 0
             try:
                 async for etype, data in _get_streamer()(req.message, thread):

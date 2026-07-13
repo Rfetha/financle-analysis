@@ -2,6 +2,7 @@
 
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.prebuilt import create_react_agent
+from loguru import logger
 
 from sonar.agent import events
 
@@ -21,17 +22,19 @@ def build_agent(*, model, tools, checkpointer=None):
 
 
 def make_streamer(*, registry, cache, ttl):
-    """(message, thread_id) -> Sonar SSE event akışı (API-key yolu, ADR-0002)."""
+    """(message, thread_id) -> Sonar SSE event akışı. Model katmanı env'den seçer (ADR-0002)."""
     agent = None
 
     async def stream(message: str, thread_id: str):
         nonlocal agent
-        if agent is None:  # model init ilk istekte — API key yoksa hata SSE error'a düşsün
+        if agent is None:  # model init ilk istekte — model/key hatası SSE error'a düşsün
             from sonar.agent.model import default_model
             from sonar.agent.tools import make_quote_tool
 
+            model = default_model()
+            logger.info("agent kuruldu — model: {}", getattr(model, "model_name", model))
             tool = make_quote_tool(registry=registry, cache=cache, ttl=ttl)
-            agent = build_agent(model=default_model(), tools=[tool])
+            agent = build_agent(model=model, tools=[tool])
         async for ev in agent.astream_events(
             {"messages": [("user", message)]},
             config={"configurable": {"thread_id": thread_id}},

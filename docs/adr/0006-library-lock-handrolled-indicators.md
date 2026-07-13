@@ -1,8 +1,11 @@
 # 0006 — Kütüphane kilidi; teknik göstergeler elle yazılır
 
 ## Locked stack
-- **Backend:** FastAPI · **Agent:** LangGraph (+ LangChain) · **MCP:** langchain-mcp-adapters
-- **Model:** provider-agnostik LangChain model wrapper'ları (langchain-openai / langchain-anthropic …)
+- **Backend:** FastAPI · **Agent:** LangGraph (+ LangChain) — tek loop, ReAct/StateGraph (ADR-0007)
+- **Model:** model katmanı `sonar/agent/model.py` (ADR-0002) — OpenAI-uyumlu tek istemci
+  (`langchain-openai`; local + OpenRouter aynı yoldan) + doğrudan sağlayıcılar için
+  `init_chat_model` (langchain-anthropic …). Varsayılan `local` (llama-server).
+  MCP adapter'ı (`langchain-mcp-adapters`) **düştü** (2026-07-13): MCP "harici beyin" kapısı non-goal.
 - **Store:** raw `sqlite3` (ORM yok) · **HTTP:** httpx
 - **Veri:** yfinance · SEC EDGAR (raw httpx) · FRED (raw httpx) · feedparser (RSS)
 - **Scheduler:** APScheduler · **Paketleme:** uv + PyInstaller

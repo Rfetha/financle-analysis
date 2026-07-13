@@ -15,7 +15,7 @@ Yürütme sırasında canlı task ilerlemesi → `.superpowers/sdd/progress.md` 
 
 ```
 backend/          Python paketi (FastAPI + LangGraph + tools + store), uv ile yönetilir
-  sonar/          domain/ · store/ · market/ · tools/ · api/ · cli.py
+  sonar/          domain/ · store/ · market/ · tools/ · agent/ (model+graph) · api/ · cli.py
   tests/          pytest
 frontend/         Vite + React + TypeScript SPA (yayında statik build → backend servis eder)
 docs/             ROADMAP.md · adr/ · superpowers/specs/ · superpowers/plans/
@@ -51,13 +51,19 @@ uv run pyinstaller sonar.spec --noconfirm     # dist/sonar(.exe)
   DB yok (gerekirse `sqlite-vec`).
 - **Agent = LangGraph** (ADR-0006/0007): chat = `create_react_agent` (ReAct, dinamik tool);
   DeepAnalysis/Brief = deterministik StateGraph (sabit reçete, LLM yalnız synthesize node).
-- **Tek swappable AI provider** (ADR-0002): ChatGPT/Codex-OAuth · Claude (Claude Code/MCP
-  üzerinden, ToS) · API key. Aynı anda tek provider, kullanıcı seçer. Local sonra.
+- **Tek model, tek loop** (ADR-0002): model katmanı `sonar/agent/model.py` env'den chat model
+  üretir — `SONAR_MODEL="<provider>:<model>"`, varsayılan `local:qwen3-14b` (llama-server,
+  key yok); `openrouter:` (OPENROUTER_API_KEY) · `anthropic:`/`openai:` (kendi key'leri);
+  `SONAR_BASE_URL` ile Ollama/LM Studio/gateway. Local + OpenRouter aynı OpenAI-uyumlu
+  istemciden geçer. Abonelik/OAuth yolu **yok** (ToS, ban riski). Katman sınırı testle
+  korunur (`tests/test_layering.py`: api/tools/domain/store/market'te provider ithali yasak).
 - **Frontend uniform SSE** (ADR-0008): chat + canlı-quote SSE ile akar; mesaj = tipli
   "part" listesi + component registry → AG-UI'a rewrite'sız geçiş. **SSR yok.**
 - **US-first.** TR (BIST/TEFAS) v1'de yok → ileride ayrı paket `sonar-market-tr`.
 - **Non-goal:** broker/emir YOK (sadece analiz/izleme). Çoklu kullanıcı/auth/SaaS yok.
-  Opsiyon akışı/dark pool yok (ücretli).
+  Opsiyon akışı/dark pool yok (ücretli). MCP server ("harici beyin" kapısı) yok · Claude Code /
+  Agent SDK yok · `deepagents` harness'ı yok · finansa fine-tune edilmiş beyin modeli yok
+  (ADR-0002/0007).
 
 ## Stack
 

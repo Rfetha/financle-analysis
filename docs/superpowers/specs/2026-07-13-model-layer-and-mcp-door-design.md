@@ -77,15 +77,31 @@ döndürür ve o model listelenmez. "Tool'suz çalışan sağlayıcı" kabul edi
   kaldıraç bu, ekstra model değil).
 - **Model:** **Qwen3 14B Q4_K_M** (~9 GB; RTX 5070 12 GB'a 8–16k context ile sığar). Tool-calling'de
   bilinen güçlü aday.
-- **Çalıştırma:**
+- **Çalıştırma (ölçülmüş ayar):**
   ```bash
-  llama-server -m qwen3-14b-q4_k_m.gguf --jinja -c 16384 -ngl 99 --port 8080
+  llama-server -m Qwen3-14B-Q4_K_M.gguf --jinja -fa on -c 8192 -ngl 99 --port 8080
   ```
-- **Kabul kriteri (5 vaka, log'daki `tool →` satırlarından ölçülür):** tek ticker → 1 doğru çağrı ·
-  çoklu ticker → her biri için ayrı çağrı · bilinmeyen sembol → uydurmadan hata anlatısı · kapsam dışı
-  soru → tool'a gitmeden dürüst ret · sohbet sorusu → gereksiz tool çağırmama.
-- **Geçemezse:** önce grammar zorlaması denenir; o da yetmezse local "deneysel" etiketine düşer ve
-  varsayılan OpenRouter olur (ADR-0002'deki "local ertelendi" kararı bu ölçümle güncellenir).
+- **Kabul kriteri (5 vaka):** tek ticker → 1 doğru çağrı · çoklu ticker → her biri için ayrı çağrı ·
+  bilinmeyen sembol → uydurmadan hata anlatısı · kapsam dışı soru → tool'a gitmeden dürüst ret ·
+  sohbet sorusu → gereksiz tool çağırmama.
+
+### Ölçüm sonucu (2026-07-13, RTX 5070 12 GB)
+
+**5/5 geçti → local varsayılan kalıyor.** Grammar zorlamasına gerek kalmadı; Needle tetiği ateşlenmedi.
+
+| | `-c 16384` (fa yok) | **`-fa on -c 8192`** |
+|---|---|---|
+| decode | 14–16 tok/s | **42 tok/s** |
+| prompt eval | ~90 tok/s | **~340 tok/s** |
+| tek ticker / sohbet | 30.4 s / 17.7 s | **13.3 s / 5.9 s** |
+| VRAM | 11.7 / 12.2 GB (sınırda) | 10.9 / 12.2 GB |
+
+Flash attention olmadan 16k KV cache VRAM'i doldurup paylaşımlı RAM'e sızdırıyor → decode yarı hız.
+8k context bizim akışlarımıza fazlasıyla yetiyor. **Launcher bu bayrakları kullanacak.**
+
+Kalan iki bulgu (bloke etmez): model karşılaştırmada aritmetiği kendi yaptı (ADR-0003 sınırı — M2'de
+karşılaştırma tool'u kapatır) · system prompt'taki "Sen Sonar'sın" ifadesini cevaba yansıtıyor
+("Ben Sen Sonar") → prompt düzeltmesi.
 
 **Opsiyon (ölçüme bağlı, şimdi yazılmaz):** tool seçimi bocalarsa döngünün iki işini ayır —
 *dispatch* (hangi tool + argüman) küçük ve uzmanlaşmış bir modele ([Needle](https://github.com/cactus-compute/needle),

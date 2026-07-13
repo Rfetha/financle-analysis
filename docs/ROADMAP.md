@@ -17,15 +17,22 @@ subagent-driven yürütülür. Sıra: plan → subagent-driven execute → final
 | **M3** | Portföy/Watchlist (UC2/3): aggregate'ler + repo + P&L + paneller | P&L elle = eşleşir; konsantrasyon flag | ~10 | ⏳ planlı | TBD |
 | **M4** | Büyük oyuncular: EDGAR 13F/Form4 + HoldingsSnapshot/InsiderTrade + Δ | EDGAR/Dataroma ile eşleşir | ~10 | ⏳ planlı | TBD |
 | **M5** | Otonomi (UC4/5): APScheduler + Brief recipe + Alert | sabah brief oluşur; alert cooldown'lı tetikler | ~10 | ⏳ planlı | TBD |
-| **M6** | AI provider + dağıtım: ChatGPT-OAuth · Claude/MCP server · settings UI · CI binary matrix | her provider çalışır; CI OS-matrix binary üretir | ~10 | ⏳ planlı | TBD |
+| **M6** | Model katmanı + dağıtım: settings UI (model/endpoint seçimi) · local runtime yönetimi (llama-server indir/spawn, **detect-first**) · CI binary matrix | Settings'ten model seçilir; local tek tıkla ayağa kalkar (ayakta olan endpoint'e dokunulmaz); CI OS-matrix binary üretir | ~10 | ⏳ planlı² | TBD |
 
 **Toplam ≈ 72 task.** Mantık: M0–M1 mimariyi kanıtlar · M2 asıl değeri (derin analiz) · M3–M5 genişletir · M6 cilalar+dağıtır.
 
 > ¹ **M1 DoD karşılandı** (`ca55072`): `/api/chat` uçtan uca sürüldü → `tool-call` →
-> `tool-result` → token-token `text-delta` → `done`; 31 test yeşil. Varsayılan provider
-> **`claude-code`** (abonelik, ADR-0002): API key gerekmez, döngüyü Claude Code SDK sürer
-> (ToS istisnası ADR-0007'de). `SONAR_PROVIDER=api-key` → LangGraph ReAct + `SONAR_MODEL`.
+> `tool-result` → token-token `text-delta` → `done`. **Güncelleme (2026-07-13):** M1'de yazılan
+> Claude Code SDK yolu **söküldü** (abonelik OAuth = ToS/ban riski; SDK = versiyon+fatura riski —
+> ADR-0002). Artık **tek loop: LangGraph ReAct**, her sağlayıcı için; model katmanı
+> `sonar/agent/model.py` (`SONAR_MODEL`, varsayılan `local:qwen3-14b`). Chat key'siz çalışmaz:
+> ya local model ayakta ya OpenRouter key'i. `SONAR_PROVIDER` yok.
 > Kalan: kozmetik lint pass (M6 CI'ye kadar bekleyebilir).
+
+> ² **M6 sıralaması bağlayıcı: önce ölç, sonra kur.** Local runtime yönetimi (indirme + spawn +
+> Settings) ancak Qwen3 14B Q4 beş-vakalık tool-calling testini **geçerse** yazılır; geçmezse
+> varsayılan OpenRouter'a döner ve launcher yazılmaz
+> (spec: [model katmanı](superpowers/specs/2026-07-13-model-layer-and-mcp-door-design.md)).
 
 > **M1 öncesi review bulguları ✅ çözüldü** (`764bc4b` merged):
 > shared-conn → `threading.Lock`; unknown ticker → 404; `@types/react` ^18 pin;
@@ -38,7 +45,7 @@ subagent-driven yürütülür. Sıra: plan → subagent-driven execute → final
 
 ## Bağlayıcı kararlar (her milestone bunlara uyar)
 - Tool yüzeyi sabit, borsalar plugin (ADR-0001/0005) · derin tool, sayı çekirdekte (ADR-0003)
-- Tek swappable AI provider (ADR-0002) · tek SQLite, Redis/vektör yok (ADR-0004)
+- Tek model, tek loop; model katmanı env'den sürer, varsayılan local (ADR-0002) · tek SQLite, Redis/vektör yok (ADR-0004)
 - LangGraph: chat=ReAct, recipe=StateGraph (ADR-0007) · **Frontend streaming = uniform SSE, AG-UI-ready (ADR-0008)** → M1 chat-SSE, M2 quote-SSE bunu izler
 
 ## v2 (v1 sonrası, ayrı roadmap)

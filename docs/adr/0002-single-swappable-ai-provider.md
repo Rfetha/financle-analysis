@@ -31,6 +31,8 @@ OpenRouter key'i ya da local model gerekir.
 ## Consequences
 - Sağlayıcı eklemek = model katmanında bir satır; `api/`, `tools/`, `domain/`, `store/`, `market/`
   değişmez (import-tarama testiyle korunuyor: `tests/test_layering.py`).
-- Local varsayılan → key'siz, ücretsiz, veri makineden çıkmaz. Ön koşul: llama-server ayakta.
-- Local'in geleceği **ölçüme bağlı**: Qwen3 14B Q4 beş-vakalık tool-calling testini geçemezse
-  varsayılan OpenRouter'a döner (spec: `docs/superpowers/specs/2026-07-13-model-layer-and-mcp-door-design.md`).
+- Local varsayılan → key'siz, ücretsiz, veri makineden çıkmaz. Ön koşul: llama-server ayakta
+  (`--jinja -fa on -c 8192 -ngl 99`).
+- **Ölçüldü (2026-07-13, RTX 5070 12 GB):** Qwen3 14B Q4 beş-vakalık tool-calling testini **5/5 geçti**;
+  42 tok/s decode, yanıt 6–13 sn. "Local ertelendi (kalite yetersiz)" kararı böylece kalkmış oldu.
+  Ayrıntı: `docs/superpowers/specs/2026-07-13-model-layer-and-mcp-door-design.md`.

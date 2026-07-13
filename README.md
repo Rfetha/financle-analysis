@@ -2,8 +2,8 @@
 
 > US-equity araştırma & portföy asistanı — açık kaynak, provider-bağımsız, otonom çalışabilir.
 
-**Durum:** erken geliştirme. Şu an **M0 (walking skeleton)** — tek binary, ticker → gerçek
-fiyat. Tüm yol haritası: [`docs/ROADMAP.md`](docs/ROADMAP.md).
+**Durum:** erken geliştirme. **M1 (agent omurgası)** tamam — chat'ten sorup token-token akan
+cevap, araç adımları görünür. Tüm yol haritası: [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
 ## Ne yapar (vizyon)
 
@@ -28,8 +28,18 @@ cd backend && uv sync && uv run sonar     # tarayıcı http://127.0.0.1:8000 aç
 
 ## Beyin (AI) sağlama
 
-Tek, değiştirilebilir provider — kullanıcı seçer: **ChatGPT/Codex OAuth** · **Claude**
-(Claude Code/MCP üzerinden) · **API key** (Anthropic/OpenAI). Aboneliğin yoksa API key yeter.
+Tek model, tek loop (LangGraph). Model `SONAR_MODEL="<provider>:<model>"` ile seçilir:
+
+| provider | örnek | endpoint | key |
+|---|---|---|---|
+| `local` **(varsayılan)** | `local:qwen3-14b` | `http://localhost:8080/v1` (llama-server) | yok |
+| `openrouter` | `openrouter:anthropic/claude-sonnet-4.6` | OpenRouter | `OPENROUTER_API_KEY` |
+| `anthropic` · `openai` | `openai:gpt-5` | resmi | ilgili key |
+
+Varsayılan yol **local**: key yok, ücret yok, veri makineden çıkmaz — ön koşul makinede
+`llama-server`'ın ayakta olması. `SONAR_BASE_URL` ile Ollama/LM Studio/gateway'e yönlendirilir.
+Chat için ya local model ayakta olmalı ya da bir OpenRouter key'i verilmeli; **abonelik
+(Claude/ChatGPT) ile çalışma yolu yok** (sağlayıcı ToS'u, hesap ban riski — [ADR-0002](docs/adr/0002-single-swappable-ai-provider.md)).
 
 ## Geliştirme
 
