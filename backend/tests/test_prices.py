@@ -1,5 +1,8 @@
 import httpx
+import pytest
+
 from sonar.domain.symbol import Symbol
+from sonar.market.base import UnknownSymbol
 from sonar.market.sources.http import HttpClient
 from sonar.market.us.prices import AlpacaPrices, YFinancePrices, make_price_source
 
@@ -34,8 +37,15 @@ def test_make_price_source_with_key_uses_alpaca(monkeypatch):
     assert isinstance(make_price_source(), AlpacaPrices)
 
 
+def test_alpaca_quote_unknown_symbol_raises_domain_error():
+    transport = httpx.MockTransport(lambda r: httpx.Response(404))
+    http = HttpClient("Sonar/0.1 (t@e.com)", transport=transport, min_interval=0)
+    src = AlpacaPrices(key="k", secret="s", http=http, now=lambda: 7.0)
+    with pytest.raises(UnknownSymbol):
+        src.quote(Symbol("ZZZZ", "US"))
+
+
 import os
-import pytest
 
 
 @pytest.mark.slow

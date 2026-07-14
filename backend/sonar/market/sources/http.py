@@ -20,6 +20,7 @@ class HttpClient:
         transport: httpx.BaseTransport | None = None,
         now: Callable[[], float] = time.monotonic,
         sleep: Callable[[float], None] = time.sleep,
+        extra_headers: dict[str, str] | None = None,
     ) -> None:
         self._min_interval = min_interval
         self._retries = retries
@@ -27,7 +28,7 @@ class HttpClient:
         self._sleep = sleep
         self._last: float | None = None
         self._client = httpx.Client(
-            headers={"User-Agent": user_agent},
+            headers={"User-Agent": user_agent, **(extra_headers or {})},
             timeout=30.0,
             follow_redirects=True,
             transport=transport,

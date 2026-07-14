@@ -7,6 +7,8 @@ import time
 from decimal import Decimal
 from typing import Callable, Protocol
 
+import httpx
+
 from sonar.domain.candle import Candle, OhlcvSeries
 from sonar.domain.money import Money
 from sonar.domain.quote import Provenance, Quote
@@ -95,13 +97,16 @@ class AlpacaPrices:
         self._http = http or HttpClient(
             f"Sonar/0.1 ({os.environ.get('SONAR_CONTACT', 'sonar@localhost')})",
             min_interval=0.3,  # Alpaca ücretsiz katman: 200 req/dk
-        )
-        self._http._client.headers.update(
-            {"APCA-API-KEY-ID": key, "APCA-API-SECRET-KEY": secret}
+            extra_headers={"APCA-API-KEY-ID": key, "APCA-API-SECRET-KEY": secret},
         )
 
     def quote(self, symbol: Symbol) -> Quote:
-        data = self._http.get_json(f"{ALPACA_DATA_URL}/{symbol.ticker}/snapshot")
+        try:
+            data = self._http.get_json(f"{ALPACA_DATA_URL}/{symbol.ticker}/snapshot")
+        except httpx.HTTPStatusError as e:
+            if e.response.status_code in (404, 422):
+                raise UnknownSymbol(symbol.ticker) from e
+            raise
         trade = data.get("latestTrade") or {}
         prev = data.get("prevDailyBar") or {}
         if "p" not in trade or "c" not in prev:
@@ -125,14 +130,20 @@ class AlpacaPrices:
             f"{ALPACA_DATA_URL}/{symbol.ticker}/bars"
             f"?timeframe={tf}&start={start}&limit=10000&adjustment=split"
         )
-        data = self._http.get_json(url)
+        try:
+            data = self._http.get_json(url)
+        except httpx.HTTPStatusError as e:
+            if e.response.status_code in (404, 422):
+                raise UnknownSymbol(symbol.ticker) from e
+            raise
         bars = data.get("bars") or []
         if not bars:
             raise UnknownSymbol(symbol.ticker)
         candles = [
             Candle(
                 ts=int(datetime.fromisoformat(b["t"].replace("Z", "+00:00")).timestamp()),
-                open=b["o"], high=b["h"], low=b["l"], close=b["c"], volume=int(b["v"]),
+                open=float(b["o"]), high=float(b["h"]), low=float(b["l"]), close=float(b["c"]),
+                volume=int(b["v"]),
             )
             for b in bars
         ]
