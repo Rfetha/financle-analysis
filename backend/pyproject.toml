@@ -19,7 +19,7 @@ dependencies = [
 ]
 
 [dependency-groups]
-dev = ["pytest>=8", "pyinstaller>=6.5"]
+dev = ["pytest>=8", "pytest-asyncio>=0.24", "pyinstaller>=6.5"]
 
 [project.scripts]
 sonar = "sonar.cli:main"
@@ -31,4 +31,5 @@ build-backend = "hatchling.build"
 [tool.pytest.ini_options]
 markers = ["slow: gerçek dış ağ çağrısı (yfinance) — varsayılan koşuda atlanır"]
 addopts = "-m 'not slow'"
+asyncio_mode = "auto"
 filterwarnings = ["ignore:Using .httpx. with .starlette.testclient. is deprecated"]
