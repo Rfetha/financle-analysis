@@ -12,6 +12,10 @@ dependencies = [
   "langchain-anthropic>=0.3",
   "loguru>=0.7.3",
   "langchain-openai>=1.3.5",
+  "numpy>=1.26",
+  "pandas>=2.2",
+  "defusedxml>=0.7",
+  "websockets>=13",
 ]
 
 [dependency-groups]

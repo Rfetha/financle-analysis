@@ -7,7 +7,7 @@ Bu test olmadan "katmanlı mimari" laftan ibaret — provider ithali sessizce s�
 import re
 from pathlib import Path
 
-PROVIDER_FREE_DIRS = ["api", "tools", "domain", "store", "market"]
+PROVIDER_FREE_DIRS = ["api", "tools", "domain", "store", "market", "analytics"]
 PROVIDER_LIBS = ("langchain", "langgraph", "openai", "anthropic", "claude_agent_sdk")
 
 _IMPORT = re.compile(r"^\s*(?:from|import)\s+([\w.]+)", re.MULTILINE)
