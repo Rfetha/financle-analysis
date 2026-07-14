@@ -31,18 +31,29 @@ değişmez.
 
 Ücretsiz-resmî dünyada **isim + miktar + aynı gün** diye bir veri **yoktur**. Üç ayrı şey vardır:
 
-| Ne | Kaynak | Gecikme | İsim var mı |
+| Ne | Kaynak | Gecikme | **Kim** yazıyor mu |
 |---|---|---|---|
 | Kurumsal pozisyon (BofA, Berkshire) | SEC **13F-HR** | çeyreklik, **45 gün** | ✅ |
 | Insider alım/satım (CEO, CFO) | SEC **Form 4** | **2 iş günü** | ✅ |
 | %5 üstü pay | SEC **13D/13G** | günler | ✅ (→ v2) |
-| Günlük akış (hacim, short, dark pool) | tape · FINRA | günlük/haftalık | ❌ |
+| Short interest (toplam açık pozisyon) | **FINRA** | ayda 2 kez | ❌ (toplam) |
+| Hacim anomalisi | *iç hesap* (OHLCV) | günlük | ❌ |
+| Günlük short volume · dark pool/ATS | FINRA | günlük / haftalık | ❌ → **v2, §9** |
 | Gerçek zamanlı isimli akış | — | — | **yok** (ücretli veride bile) |
 
-**Sonuç:** Sonar gecikmeyi **saklamaz, yazar**. Her Big Players çıktısı Provenance taşır:
-*"13F · 2026-Q1 · 45 gün gecikmeli"*. Kullanıcı gecikmeli veriyi asla canlı sanmaz.
+**Piyasa anonimdir.** Tape'e düşen kayıtta alan/satanın kimliği **yoktur** — ne bizde, ne Bloomberg'de.
+"Kim aldı" sorusunun ücretsiz-resmî dünyada **iki** cevabı var: 13F (45 gün) ve Form 4 (2 gün). Başkası yok.
 
-Retail sitelerinin "institutional flow" dediği şey ya 13F'tir (45 gün) ya tape çıkarımıdır (tahmin).
+**Sonuç:** Sonar gecikmeyi **saklamaz, yazar**. Her Big Players çıktısı Provenance taşır:
+*"13F · 2026-Q1 · 45 gün gecikmeli"*. Gecikmeli veri asla canlı gibi sunulmaz; isimsiz veri asla isimli
+gibi ima edilmez. Retail sitelerinin "institutional flow" dediği şey ya 13F'tir (45 gün) ya da tape
+çıkarımıdır (tahmin) — Sonar ikisini **ayrı satırda** gösterir.
+
+**Günlük short volume ve dark pool/ATS neden alınmadı:** tipik bir S&P hissesinde günlük short volume
+zaten **her gün %40-50**'dir (market maker envanter hedge'i "short" print'lenir) → "%44 short" bir sinyal
+değil, normal bir salı. ATS dosyasındaki isim (*"UBS ATS"*) **venue**'dur, alıcı değil — "UBS aldı" diye
+okunması en yaygın hatadır. Gürültülü ve yanlış-okunmaya açık veri için ingestion makinesi kurmuyoruz;
+bütçe 13F Δ analitiğine ve insider cluster'a gidiyor (§7).
 
 ## 3. Kaynak seçimi
 
@@ -51,6 +62,7 @@ Retail sitelerinin "institutional flow" dediği şey ya 13F'tir (45 gün) ya tap
 | Fiyat / OHLCV / canlı tick | **Alpaca** (resmî API + WebSocket) | yfinance | ücretsiz, opsiyonel |
 | Fundamentals | **SEC EDGAR companyfacts** (XBRL, denetlenmiş) | — | yok |
 | Kurumsal pozisyon / insider | **SEC 13F / Form 4** | — | yok |
+| Short interest / days-to-cover | **FINRA** (ayda 2 kez) | — | yok |
 | Makro (faiz, TÜFE, 10Y) | **FRED** (key'siz CSV endpoint) | — | yok |
 | Global rejim (VIX, DXY, emtia) | `GlobalMacro` (fiyat kaynağı üstünden) | — | yok |
 | Peers | **EDGAR SIC** kodu | — | yok |
@@ -76,7 +88,10 @@ Merkezî `market/sources/http.py` uygular.
 > **Matematik ve orkestrasyon → çekirdek. "Hangi URL, hangi format" → plugin. "Nasıl HTTP çekilir" → ortak makine.**
 
 ```
-analytics/          saf matematik — RSI · MACD · BB · EMA · S/R · holdings Δ   (I/O yok)
+analytics/          saf matematik (I/O yok)
+  indicators.py     RSI · MACD · BB · EMA · S/R · OBV · hacim anomalisi
+  holdings.py       (B) 13F Δ sınıflaması: new/exit/add/trim · float % · sahiplik trendi
+  insiders.py       (B) Form 4 cluster tespiti
 tools/              tool yüzeyi: Symbol → registry → plugin; hesap çekirdekte
 domain/             Candle · Fundamentals · NewsItem · MacroSnapshot · Signal · HoldingsSnapshot …
 market/
@@ -90,6 +105,7 @@ market/
     __init__.py     USMarketPlugin — ince composer
     prices.py       Alpaca | yfinance
     edgar.py        ticker↔CIK · companyfacts · SIC · (Faz B) 13F/Form4
+    finra.py        (B) short interest / days-to-cover
     fred.py         yerel makro seriler
     news.py         US feed listesi (parse ortakta)
 agent/
@@ -136,17 +152,26 @@ base'e koymak "kod paylaşmak için kalıtım" (klasik anti-pattern) olurdu. Com
 |---|---|---|---|
 | `get_quote(sym)` | fiyat + günlük % | Alpaca → yfinance | 60 sn |
 | `get_ohlcv(sym, range, interval)` | mum serisi | Alpaca → yfinance | 15 dk / 12 sa |
-| `get_technicals(sym)` | RSI · MACD · BB · EMA · S/R (hesaplı) | *iç* (`analytics`) | 15 dk |
+| `get_technicals(sym)` | RSI · MACD · BB · EMA · S/R · **OBV + hacim/20g oranı** | *iç* (`analytics`) | 15 dk |
 | `get_fundamentals(sym)` | değerleme · marj · büyüme · borç | EDGAR | 24 sa |
 | `get_news(sym)` | başlık + kaynak + zaman | RSS | 15 dk |
 | `get_macro_snapshot()` | faiz · TÜFE · 10Y · eğri · DXY · VIX | FRED + GlobalMacro | 6 sa |
 | `get_peers(sym)` | aynı SIC'teki şirketler | EDGAR | 24 sa |
-| `get_institutional_holders(sym)` *(B)* | filer + lot + değer + **Δ** | 13F | 24 sa |
-| `get_insider_trades(sym)` *(B)* | insider + yön + lot + tarih | Form 4 | 6 sa |
+| `get_institutional_holders(sym)` *(B)* | filer + lot + değer + **Δ sınıflaması** + float % + sahiplik trendi | 13F | 24 sa |
+| `get_insider_trades(sym)` *(B)* | insider işlemleri + **cluster tespiti** | Form 4 | 6 sa |
 | `get_filer_holdings(filer)` *(B)* | bir filer'ın tüm pozisyonları | 13F | 24 sa |
+| `get_short_interest(sym)` *(B)* | açık short + **days-to-cover** + float % | FINRA | 12 sa |
 
 Tool'lar **hesaplanmış** sonuç döner (ADR-0003) — LLM aritmetik yapmaz. Market veremediğine
 `Unsupported` (sessiz boş değil).
+
+**Derinlik tool sayısında değil, tool'un içinde.** Faz B'nin asıl değeri yeni uç noktalar değil,
+mevcutların içindeki analitik (hepsi `analytics/`'te, plugin'de değil):
+- **13F Δ sınıflaması** — her filer için `new · exit · add · trim · hold`; float yüzdesi; kurumsal
+  sahiplik trendi (*"%62 → %67; 47 filer girdi, 12 çıktı; en büyük artış: BofA +100M lot (yeni)"*).
+- **Insider cluster** — *"son 30 günde 4 farklı yönetici açık piyasadan aldı, satan yok"*. Tek CEO alımı
+  gürültü; küme alım, ücretsiz veride bulunan en sağlam sinyallerden biri (*cluster buying*).
+- **Hacim anomalisi** — hacim / 20-gün ortalaması + OBV. Yeni kaynak gerektirmez, OHLCV'den çıkar.
 
 ## 5. DeepAnalysis recipe
 
@@ -208,7 +233,12 @@ dosyalarında CUSIP + SYMBOL birlikte yayınlanıyor. **Bu bir varsayım — öl
 **Form 4 spike'a bağlı değil** — per-ticker: issuer CIK → filing listesi → XML parse. 2 gün gecikmeli,
 gerçek isim.
 
-**Δ hesabı `analytics/holdings.py`'de**, plugin'de değil — her market için aynı matematik.
+**Short interest spike'a bağlı değil** — FINRA'nın ayda 2 kez yayımladığı dosya, tek parse
+(`market/us/finra.py`). Days-to-cover = açık short / ortalama günlük hacim → `analytics`.
+
+**Bütün hesap `analytics/`'te**, plugin'de değil — her market için aynı matematik:
+`holdings.py` (Δ sınıflaması, float %, sahiplik trendi) · `insiders.py` (cluster) · `indicators.py`
+(hacim anomalisi).
 
 ## 8. Test stratejisi
 
@@ -222,9 +252,13 @@ gerçek isim.
 
 ## 9. Kapsam dışı (bu spec'te yok)
 
-Gerçek zamanlı isimli akış (ücretli veride bile yok) · dark pool / opsiyon akışı (ücretli, non-goal) ·
-13D/13G (v2) · ETF holdings (v2) · `search_symbols` fuzzy çözümleme (ayrı iş) · Settings ekranı (M6) ·
-portföy/watchlist (M3).
+- **Gerçek zamanlı isimli akış** — ücretli veride bile yok (piyasa anonim, §2).
+- **Günlük short volume · dark pool/ATS** (FINRA) → **v2**. Veri ücretsiz ve mevcut; alınmama sebebi
+  maliyet değil **yanlış-okunabilirlik**: günlük short volume tipik bir S&P hissesinde her gün %40-50
+  (MM hedge print'i), ATS'teki isim venue'dur alıcı değil. v2'de, ne olmadığını doğru anlatan bir UI ile.
+- **Opsiyon akışı** — ücretli (OPRA), non-goal.
+- 13D/13G (v2) · ETF holdings (v2) · `search_symbols` fuzzy çözümleme (ayrı iş) · Settings ekranı (M6) ·
+  portföy/watchlist (M3).
 
 ## 10. ADR etkisi
 
