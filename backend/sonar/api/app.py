@@ -42,9 +42,7 @@ def create_app(
         if streamer is None:
             from sonar.agent.graph import make_streamer
 
-            streamer = make_streamer(
-                registry=registry, cache=cache, ttl=config.QUOTE_TTL_SECONDS
-            )
+            streamer = make_streamer(registry=registry, cache=cache)
         return streamer
 
     @app.get("/api/health")

@@ -23,7 +23,7 @@ def build_agent(*, model, tools, checkpointer=None):
     )
 
 
-def make_streamer(*, registry, cache, ttl):
+def make_streamer(*, registry, cache):
     """(message, thread_id) -> Sonar SSE event akışı. Model katmanı env'den seçer (ADR-0002)."""
     agent = None
 
@@ -31,12 +31,11 @@ def make_streamer(*, registry, cache, ttl):
         nonlocal agent
         if agent is None:  # model init ilk istekte — model/key hatası SSE error'a düşsün
             from sonar.agent.model import default_model
-            from sonar.agent.tools import make_quote_tool
+            from sonar.agent.tools import make_tools
 
             model = default_model()
             logger.info("agent kuruldu — model: {}", getattr(model, "model_name", model))
-            tool = make_quote_tool(registry=registry, cache=cache, ttl=ttl)
-            agent = build_agent(model=model, tools=[tool])
+            agent = build_agent(model=model, tools=make_tools(registry=registry, cache=cache))
         async for ev in agent.astream_events(
             {"messages": [("user", message)]},
             config={"configurable": {"thread_id": thread_id}},
