@@ -93,6 +93,7 @@ analytics/          saf matematik (I/O yok)
   holdings.py       (B) 13F Δ sınıflaması: new/exit/add/trim · float % · sahiplik trendi
   insiders.py       (B) Form 4 cluster tespiti
 tools/              tool yüzeyi: Symbol → registry → plugin; hesap çekirdekte
+  _cache.py         cached(key, ttl, fn) — 11 tool'un cache sarmalı tek yerde (Duplicated Code)
 domain/             Candle · Fundamentals · NewsItem · MacroSnapshot · Signal · HoldingsSnapshot …
 market/
   base.py           MarketPlugin (Protocol)  +  BaseMarketPlugin (opsiyonel ABC)  + Unsupported
@@ -103,7 +104,7 @@ market/
     global_macro.py VIX · DXY · WTI · altın · UST10Y  (her market kullanır)
   us/
     __init__.py     USMarketPlugin — ince composer
-    prices.py       Alpaca | yfinance
+    prices.py       PriceSource Protocol → AlpacaPrices | YFinancePrices  (Strategy)
     edgar.py        ticker↔CIK · companyfacts · SIC · (Faz B) 13F/Form4
     finra.py        (B) short interest / days-to-cover
     fred.py         yerel makro seriler
@@ -116,35 +117,49 @@ Somut sınama: **`get_technicals` plugin'e hiç dokunmaz** — OHLCV'yi ister, R
 TR plugin'i geldiğinde teknik analiz kodu tek satır değişmez. Portföy/watchlist/alert/brief de öyle
 (ADR-0001: çekirdek, plugin değil).
 
-### Plugin sözleşmesi: Protocol + opsiyonel ABC
+### Plugin sözleşmesi: Protocol (sözleşme) + ABC (sözleşme bozunumu)
 
 `MarketPlugin` **Protocol** kalır — sözleşme yapısal. Belirleyici sebep: `sonar-market-tr` **ayrı bir
 pip paketi** olarak planlı (CLAUDE.md); üçüncü-parti paketin bizim base class'ımızdan türemek zorunda
-kalması sıkı kuplajdır (base değişince dış paket kırılır). Protocol'de böyle bir bağ yok.
+kalması sıkı kuplajdır. Protocol'de böyle bir bağ yok.
 
-Yanına **opsiyonel** `BaseMarketPlugin(ABC)`: ortak davranışı hazır verir. Template Method (CLAUDE.md §9)
-— iskelet sabit, adım değişir:
+`BaseMarketPlugin(ABC)` **opsiyonel batarya** olarak kalır, ama işi **Unsupported varsayılanları**:
 
 ```python
 class BaseMarketPlugin(ABC):
-    def __init__(self, global_macro: GlobalMacro) -> None:
-        self._global = global_macro
-
-    def get_macro_snapshot(self) -> MacroSnapshot:      # iskelet sabit
-        return MacroSnapshot(
-            global_=self._global.snapshot(),            # ortak: VIX/DXY/emtia
-            local=self._local_macro(),                  # değişen adım
-        )
-
-    @abstractmethod
-    def _local_macro(self) -> LocalMacro: ...           # US: FED+TÜFE+10Y | TR: TCMB+TÜFE
+    """11 yeteneğin Unsupported varsayılanı. Market yalnız verebildiğini override eder."""
+    market: str
+    def get_ohlcv(self, s, r, i):            raise Unsupported(f"{self.market}: ohlcv")
+    def get_institutional_holders(self, s):  raise Unsupported(f"{self.market}: 13F")
+    def get_short_interest(self, s):         raise Unsupported(f"{self.market}: short interest")
+    ...
 ```
 
-`USMarketPlugin(BaseMarketPlugin)` — batarya dahil. Dışarıdan biri istemezse Protocol'ü doğrudan
-implement eder. Python'un `io` / `collections.abc` deseni: **ABC = kolaylık, Protocol = sözleşme.**
+**Sakladığı karar:** *sözleşme nasıl bozunur* — ADR-0005'in "veremediğine `Unsupported` döner" kuralı
+tek yerde, 11 kez tekrar edilmeden. TR plugin'i 4 yeteneği implement eder, kalan 7 otomatik `Unsupported`
+döner. Protocol'de bu mümkün değil (eksik metot = `AttributeError`, sessiz çökme).
+
+**Template Method KULLANILMIYOR** (ilk taslakta vardı, elendi). Deep-module denetimi: `get_macro_snapshot`
+iskeleti 4 satır, sakladığı karar *"makro = global + yerel"* — interface ≈ implementation → **shallow**.
+GoF kuralı da aynı yere çıkıyor: *adımlar inject edilebiliyorsa Template Method değil composition/Strategy.*
+Ve inject edilebiliyor:
+
+```python
+class USMarketPlugin(BaseMarketPlugin):
+    def __init__(self, prices: PriceSource, global_macro: GlobalMacro, local_macro: MacroSource, ...):
+        self._prices, self._global, self._local = prices, global_macro, local_macro
+
+    def get_macro_snapshot(self) -> MacroSnapshot:
+        return MacroSnapshot(global_=self._global.snapshot(), local=self._local.snapshot())
+```
+`GlobalMacro` yine **tek yerde** (kopyala-yapıştır yok), ama kalıtım bağı da yok.
+
+**Fiyat kaynağı = Strategy.** `PriceSource` Protocol'ü (`AlpacaPrices` | `YFinancePrices`); hangisi
+kullanılacağı key'in varlığına göre **construction'da inject edilir**. Aynı interface, runtime'da değişen
+davranış → GoF Strategy (Protocol ile, ABC'siz).
 
 Rate-limitli HTTP ve RSS parser **miras verilmez, enjekte edilir** — onlar market davranışı değil altyapı;
-base'e koymak "kod paylaşmak için kalıtım" (klasik anti-pattern) olurdu. Composition.
+base'e koymak "kod paylaşmak için kalıtım" (klasik anti-pattern) olurdu.
 
 ### Tool yüzeyi (ADR-0001: sabit sözleşme)
 
@@ -263,5 +278,6 @@ gerçek isim.
 ## 10. ADR etkisi
 
 Yeni ADR gerekmiyor; mevcutlar korunuyor. İki ADR'ye **not** düşülecek:
-- **ADR-0005** (market plugin): sözleşme = Protocol + opsiyonel `BaseMarketPlugin` ABC (batarya).
+- **ADR-0005** (market plugin): sözleşme = `MarketPlugin` Protocol; `BaseMarketPlugin` ABC yalnız
+  **Unsupported varsayılanlarını** taşır (Template Method değil). Fiyat kaynağı seçimi = Strategy.
 - **ADR-0001/0003:** tool yüzeyi bu spec'teki 10 tool'a genişledi; hesap `analytics/`'te.
