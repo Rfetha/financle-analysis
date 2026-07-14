@@ -22,6 +22,12 @@ REVENUE_TAGS = ("Revenues", "RevenueFromContractWithCustomerExcludingAssessedTax
 INCOME_TAGS = ("NetIncomeLoss", "ProfitLoss")
 
 
+def _filed_key(entry: dict) -> str:
+    """Sıralama anahtarı: hangi filing daha yeni? `filed` (ISO tarih) tercih edilir,
+    yoksa `accn` (accession number, artan sırada) fallback."""
+    return entry.get("filed") or entry.get("accn") or ""
+
+
 class EdgarClient:
     source = "SEC EDGAR companyfacts"
 
@@ -51,8 +57,21 @@ class EdgarClient:
             if units:
                 annual = [u for u in units if u.get("fp") == "FY" and u.get("form") == "10-K"]
                 if annual:
-                    return sorted(annual, key=lambda u: u["end"])
+                    return sorted(self._dedup_by_end(annual), key=lambda u: u["end"])
         return []
+
+    @staticmethod
+    def _dedup_by_end(entries: list[dict]) -> list[dict]:
+        """Aynı fiscal year birden fazla 10-K'da yeniden raporlanır (bu yılki 10-K +
+        gelecek yılki 10-K'nın prior-year karşılaştırması). `end` başına, en son
+        FILE EDİLEN (`filed`, yoksa `accn`) kazanır."""
+        by_end: dict[str, dict] = {}
+        for entry in entries:
+            key = entry["end"]
+            existing = by_end.get(key)
+            if existing is None or _filed_key(entry) > _filed_key(existing):
+                by_end[key] = entry
+        return list(by_end.values())
 
     def fundamentals(self, symbol: Symbol) -> Fundamentals:
         facts = self.company_facts(self.cik_for(symbol.ticker))
@@ -64,7 +83,8 @@ class EdgarClient:
         latest = revenues[-1]
         prior = revenues[-2] if len(revenues) > 1 else None
         revenue = float(latest["val"])
-        net_income = float(incomes[-1]["val"]) if incomes else None
+        matching_income = next((i for i in incomes if i["end"] == latest["end"]), None)
+        net_income = float(matching_income["val"]) if matching_income is not None else None
         growth = (
             round((revenue - float(prior["val"])) / float(prior["val"]) * 100, 2)
             if prior and float(prior["val"])

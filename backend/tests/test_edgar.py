@@ -64,6 +64,82 @@ def test_fundamentals_computes_margin_and_growth():
     assert f.provenance.source == "SEC EDGAR companyfacts"
 
 
+DUPLICATE_FY_FACTS = {
+    "facts": {
+        "us-gaap": {
+            "Revenues": {
+                "units": {
+                    "USD": [
+                        {
+                            "form": "10-K", "fy": 2025, "fp": "FY", "val": 100.0,
+                            "end": "2025-12-31", "filed": "2025-11-01", "accn": "0001-25-000001",
+                        },
+                        # FY2026 raporlandı, sonra sonraki 10-K'da prior-year comparative
+                        # olarak yeniden raporlandı (restated val) — dedup, en son filed'i almalı.
+                        {
+                            "form": "10-K", "fy": 2026, "fp": "FY", "val": 150.0,
+                            "end": "2026-12-31", "filed": "2026-11-01", "accn": "0001-26-000001",
+                        },
+                        {
+                            "form": "10-K", "fy": 2026, "fp": "FY", "val": 155.0,
+                            "end": "2026-12-31", "filed": "2027-11-01", "accn": "0001-27-000001",
+                        },
+                    ]
+                }
+            },
+            "NetIncomeLoss": {
+                "units": {
+                    "USD": [
+                        {
+                            "form": "10-K", "fy": 2026, "fp": "FY", "val": 30.0,
+                            "end": "2026-12-31", "filed": "2026-11-01", "accn": "0001-26-000001",
+                        }
+                    ]
+                }
+            },
+        }
+    }
+}
+
+MISMATCHED_PERIOD_FACTS = {
+    "facts": {
+        "us-gaap": {
+            "Revenues": {
+                "units": {
+                    "USD": [
+                        {"form": "10-K", "fy": 2026, "fp": "FY", "val": 150.0, "end": "2026-12-31"},
+                    ]
+                }
+            },
+            "NetIncomeLoss": {
+                "units": {
+                    "USD": [
+                        # Farklı bir dönemin (FY2025) geliri — latest revenue ile end eşleşmiyor.
+                        {"form": "10-K", "fy": 2025, "fp": "FY", "val": 20.0, "end": "2025-12-31"},
+                    ]
+                }
+            },
+        }
+    }
+}
+
+
+def test_fundamentals_dedups_restated_fiscal_year():
+    client = _client({"company_tickers.json": TICKERS, "companyfacts": DUPLICATE_FY_FACTS})
+    f = client.fundamentals(Symbol("NVDA", "US"))
+    assert f.revenue == 155.0  # en son filed edilen FY2026 değeri
+    assert f.revenue_growth_yoy == pytest.approx(55.0)  # 155 vs true FY2025 (100), duplicate değil
+    assert f.period == "FY2026"
+
+
+def test_fundamentals_net_margin_none_when_income_period_mismatches_revenue():
+    client = _client({"company_tickers.json": TICKERS, "companyfacts": MISMATCHED_PERIOD_FACTS})
+    f = client.fundamentals(Symbol("NVDA", "US"))
+    assert f.revenue == 150.0
+    assert f.net_income is None
+    assert f.net_margin is None
+
+
 @pytest.mark.slow
 def test_real_edgar_fundamentals():
     from sonar.market.us import _default_http
