@@ -12,6 +12,9 @@ TOOL_CALL = "tool-call"
 TOOL_RESULT = "tool-result"
 ERROR = "error"
 DONE = "done"
+ANALYSIS_STEP = "analysis-step"
+CHART = "chart"
+QUOTE_TICK = "quote-tick"
 
 
 def sse(event: str, data: dict) -> str:
