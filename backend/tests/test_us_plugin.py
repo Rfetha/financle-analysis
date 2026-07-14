@@ -1,12 +1,13 @@
 from decimal import Decimal
 import pytest
 from sonar.market.us import USMarketPlugin
+from sonar.market.us.prices import YFinancePrices
 from sonar.market.base import UnknownSymbol
 from sonar.domain.symbol import Symbol
 
 
 def test_us_get_quote_builds_domain_quote():
-    plugin = USMarketPlugin(now=lambda: 123.0, fetch=lambda ticker: (110.0, 100.0))
+    plugin = USMarketPlugin(YFinancePrices(now=lambda: 123.0, fetch=lambda ticker: (110.0, 100.0)))
     q = plugin.get_quote(Symbol("AAPL", "US"))
     assert q.symbol == Symbol("AAPL", "US")
     assert q.price.amount == Decimal("110.0")
@@ -19,7 +20,7 @@ def test_us_get_quote_builds_domain_quote():
 def test_us_get_quote_unknown_symbol_raises():
     def _bad_fetch(ticker):
         raise KeyError("exchangeTimezoneName")
-    plugin = USMarketPlugin(fetch=_bad_fetch)
+    plugin = USMarketPlugin(YFinancePrices(fetch=_bad_fetch))
     with pytest.raises(UnknownSymbol):
         plugin.get_quote(Symbol("ZZZZQ", "US"))
 

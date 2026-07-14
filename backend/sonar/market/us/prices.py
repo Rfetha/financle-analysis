@@ -1,20 +1,34 @@
+"""Fiyat kaynağı = Strategy (GoF). Aynı interface, key'in varlığına göre değişen davranış.
+Alpaca (resmî, sözleşmeli) Task A3'te eklenir; bu dosyada bugünkü yfinance yolu korunur.
+"""
+
 import time
 from decimal import Decimal
-from typing import Callable
-from sonar.domain.symbol import Symbol
+from typing import Callable, Protocol
+
 from sonar.domain.money import Money
-from sonar.domain.quote import Quote, Provenance
+from sonar.domain.quote import Provenance, Quote
+from sonar.domain.symbol import Symbol
 from sonar.market.base import UnknownSymbol
+
+
+class PriceSource(Protocol):
+    name: str
+
+    def quote(self, symbol: Symbol) -> Quote: ...
 
 
 def _yfinance_fetch(ticker: str) -> tuple[float, float]:
     import yfinance as yf
+
     fi = yf.Ticker(ticker).fast_info
     return float(fi.last_price), float(fi.previous_close)
 
 
-class USMarketPlugin:
-    market = "US"
+class YFinancePrices:
+    # Why: yfinance Yahoo'nun özel endpoint'ini kazır — resmî değil, kırılgan. Provenance'ta
+    # bunu açıkça söylüyoruz ki kullanıcı hangi veriyle baktığını bilsin (spec §3).
+    name = "yfinance (resmî değil)"
 
     def __init__(
         self,
@@ -24,7 +38,7 @@ class USMarketPlugin:
         self._now = now
         self._fetch = fetch
 
-    def get_quote(self, symbol: Symbol) -> Quote:
+    def quote(self, symbol: Symbol) -> Quote:
         try:
             last, prev = self._fetch(symbol.ticker)
         except (KeyError, TypeError) as e:

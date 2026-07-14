@@ -2,12 +2,13 @@ from decimal import Decimal
 from sonar.tools.quote import get_quote
 from sonar.market.registry import MarketRegistry
 from sonar.market.us import USMarketPlugin
+from sonar.market.us.prices import YFinancePrices
 from sonar.store.cache import Cache
 
 
 def _registry():
     reg = MarketRegistry()
-    reg.register(USMarketPlugin(now=lambda: 1.0, fetch=lambda t: (110.0, 100.0)))
+    reg.register(USMarketPlugin(YFinancePrices(now=lambda: 1.0, fetch=lambda t: (110.0, 100.0))))
     return reg
 
 
@@ -26,7 +27,7 @@ def test_get_quote_second_call_hits_cache(conn):
         calls["n"] += 1
         return (110.0, 100.0)
     reg = MarketRegistry()
-    reg.register(USMarketPlugin(now=lambda: 1.0, fetch=fetch))
+    reg.register(USMarketPlugin(YFinancePrices(now=lambda: 1.0, fetch=fetch)))
     cache = Cache(conn, now=lambda: 1.0)
     get_quote("AAPL", registry=reg, cache=cache, ttl=60)
     get_quote("AAPL", registry=reg, cache=cache, ttl=60)
