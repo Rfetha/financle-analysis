@@ -20,8 +20,10 @@ class ChatRequest(BaseModel):
 
 
 def _default_registry() -> MarketRegistry:
+    from sonar.market.us.prices import make_price_source
+
     reg = MarketRegistry()
-    reg.register(USMarketPlugin())
+    reg.register(USMarketPlugin(make_price_source()))
     return reg
 
 
