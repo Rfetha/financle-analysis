@@ -61,6 +61,9 @@ class USMarketPlugin(BaseMarketPlugin):
     def get_news(self, symbol: Symbol) -> list[NewsItem]:
         return self._news.for_symbol(symbol)
 
+    def get_peers(self, symbol: Symbol) -> list[str]:
+        return self._edgar.peers(symbol)
+
     def get_macro_snapshot(self) -> MacroSnapshot:
         return MacroSnapshot(
             global_=self._global.snapshot(),

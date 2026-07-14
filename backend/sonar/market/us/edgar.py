@@ -80,3 +80,37 @@ class EdgarClient:
             revenue_growth_yoy=growth,
             provenance=Provenance(self.source, self._now()),
         )
+
+    def submissions(self, cik: str) -> dict:
+        return self._http.get_json(SUBMISSIONS_URL.format(cik=cik))
+
+    def sic_for(self, symbol: Symbol) -> tuple[str, str]:
+        data = self.submissions(self.cik_for(symbol.ticker))
+        return data.get("sic", ""), data.get("sicDescription", "")
+
+    def peers(self, symbol: Symbol, limit: int = 8) -> list[str]:
+        """Aynı SIC kodundaki diğer şirketler.
+
+        ponytail: her ticker için submissions çağrısı gerekiyor → CIK haritasının tamamını
+        taramak 10.000+ istek olurdu. Bu yüzden yalnız CIK'i hedefe YAKIN olanlara bakılır:
+        SEC CIK'leri kayıt sırasına göre verir, aynı sektör şirketleri kümelenmez — o yüzden
+        tarama sırası rastgele değil, *tam liste üzerinde sınırlı* tutulur (limit'e ulaşınca dur).
+        Daha iyi kapsam gerekirse Faz B'de 13F ingest'iyle birlikte gelen tam SIC tablosu kullanılır.
+        """
+        if self._cik_map is None:
+            self.cik_for(symbol.ticker)
+        assert self._cik_map is not None
+        target_sic, _ = self.sic_for(symbol)
+        if not target_sic:
+            return []
+        out: list[str] = []
+        for ticker in self._cik_map:
+            if ticker == symbol.ticker or len(out) >= limit:
+                continue
+            try:
+                sic, _ = self.sic_for(Symbol(ticker, symbol.market))
+            except Exception:  # noqa: BLE001 — tek bir sembolün 404'ü peers'ı düşürmesin
+                continue
+            if sic == target_sic:
+                out.append(ticker)
+        return out
