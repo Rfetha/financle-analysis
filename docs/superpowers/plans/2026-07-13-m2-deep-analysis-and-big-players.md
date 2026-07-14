@@ -81,7 +81,7 @@ frontend/src/
 
 # FAZ A — Derin analiz *(shippable; sonunda merge kapısı)*
 
-### Task A1: `market/us.py` → `market/us/` paketi + sözleşme genişler
+### Task A1: `market/us.py` → `market/us/` paketi + sözleşme genişler  — ✅ DONE
 
 Yapısal değişiklik — **davranış aynı kalır**. Mevcut 14 test yeşil kalmalı.
 
@@ -95,7 +95,7 @@ Yapısal değişiklik — **davranış aynı kalır**. Mevcut 14 test yeşil kal
 - Produces: `MarketPlugin` Protocol (11 metot) · `BaseMarketPlugin` ABC (Unsupported varsayılanları) ·
   `PriceSource` Protocol (`quote(symbol) -> Quote`) · `YFinancePrices` · `USMarketPlugin(prices: PriceSource)`
 
-- [ ] **Step 1: Failing test — Unsupported varsayılanı**
+- [x] **Step 1: Failing test — Unsupported varsayılanı**
 
 `backend/tests/test_market_base.py`:
 ```python
@@ -119,12 +119,12 @@ def test_unimplemented_holders_raises_unsupported():
         BareMarket().get_institutional_holders(Symbol("AAPL", "BARE"))
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `cd backend && uv run pytest tests/test_market_base.py -v`
 Expected: FAIL — `ImportError: cannot import name 'BaseMarketPlugin'`
 
-- [ ] **Step 3: `market/base.py` — Protocol + ABC**
+- [x] **Step 3: `market/base.py` — Protocol + ABC**
 
 ```python
 """Market sözleşmesi (ADR-0001/0005).
@@ -216,7 +216,7 @@ import et ve tip anotasyonlarını string yap:
 …ve dosyanın başına `from __future__ import annotations` koy. İlgili VO'lar geldikçe import'lar
 gerçek hale gelir (Task A4'te `TYPE_CHECKING` bloğuna alınır).
 
-- [ ] **Step 4: `market/us/prices.py` — PriceSource Strategy (yfinance)**
+- [x] **Step 4: `market/us/prices.py` — PriceSource Strategy (yfinance)**
 
 ```python
 """Fiyat kaynağı = Strategy (GoF). Aynı interface, key'in varlığına göre değişen davranış.
@@ -274,7 +274,7 @@ class YFinancePrices:
         )
 ```
 
-- [ ] **Step 5: `market/us/__init__.py` — composer**
+- [x] **Step 5: `market/us/__init__.py` — composer**
 
 ```python
 """US market plugin — ince composer. Yetenekleri kaynaklara dağıtır, domain VO'ya çevirir.
@@ -297,7 +297,7 @@ class USMarketPlugin(BaseMarketPlugin):
         return self._prices.quote(symbol)
 ```
 
-- [ ] **Step 6: Geriye-uyum — mevcut testler kırılmasın**
+- [x] **Step 6: Geriye-uyum — mevcut testler kırılmasın**
 
 `tests/test_us_plugin.py` ve `tests/test_quote_tool.py` bugün `USMarketPlugin(now=..., fetch=...)`
 çağırıyor. Bu artık `YFinancePrices`'ın işi. **Testleri güncelle** (davranış aynı, kurulum değişti):
@@ -316,18 +316,18 @@ Aynı düzeltmeyi `tests/test_us_plugin.py` ve `tests/test_agent_tool.py` içind
 
 `sonar/api/app.py:24` içindeki `reg.register(USMarketPlugin())` **değişmez** (varsayılan yfinance).
 
-- [ ] **Step 7: `market/us.py`'yi sil**
+- [x] **Step 7: `market/us.py`'yi sil**
 
 ```bash
 git rm backend/sonar/market/us.py
 ```
 
-- [ ] **Step 8: Testleri koştur**
+- [x] **Step 8: Testleri koştur**
 
 Run: `cd backend && uv run pytest -q`
 Expected: PASS — mevcut 31 test + 2 yeni = 33 passed. Davranış değişmedi.
 
-- [ ] **Step 9: Commit (yapısal — davranış değişmedi)**
+- [x] **Step 9: Commit (yapısal — davranış değişmedi)**
 
 ```bash
 git add -A backend/
@@ -336,7 +336,7 @@ git commit -m "refactor: market/us paket oldu; PriceSource Strategy + BaseMarket
 
 ---
 
-### Task A2: `market/sources/http.py` — rate-limitli HTTP istemcisi
+### Task A2: `market/sources/http.py` — rate-limitli HTTP istemcisi  — ✅ DONE
 
 **Files:**
 - Create: `backend/sonar/market/sources/__init__.py`, `backend/sonar/market/sources/http.py`
@@ -346,7 +346,7 @@ git commit -m "refactor: market/us paket oldu; PriceSource Strategy + BaseMarket
 - Produces: `HttpClient(user_agent: str, min_interval: float)` · `.get_json(url) -> dict` ·
   `.get_text(url) -> str` · `.get_bytes(url) -> bytes`
 
-- [ ] **Step 1: Failing test — rate limit ve User-Agent**
+- [x] **Step 1: Failing test — rate limit ve User-Agent**
 
 `backend/tests/test_sources_http.py`:
 ```python
@@ -396,12 +396,12 @@ def test_http_error_propagates():
         client.get_json("https://data.sec.gov/x")
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `cd backend && uv run pytest tests/test_sources_http.py -v`
 Expected: FAIL — `ModuleNotFoundError: sonar.market.sources.http`
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `backend/sonar/market/sources/http.py`:
 ```python
@@ -477,12 +477,12 @@ class HttpClient:
 
 `backend/sonar/market/sources/__init__.py`: boş dosya.
 
-- [ ] **Step 4: Run tests**
+- [x] **Step 4: Run tests**
 
 Run: `cd backend && uv run pytest tests/test_sources_http.py -v`
 Expected: 3 passed
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add backend/sonar/market/sources backend/tests/test_sources_http.py
@@ -491,7 +491,7 @@ git commit -m "feat: rate-limitli ortak HTTP istemcisi (EDGAR/FRED/FINRA paylasi
 
 ---
 
-### Task A3: Alpaca fiyat kaynağı (Strategy'nin ikinci implementasyonu)
+### Task A3: Alpaca fiyat kaynağı (Strategy'nin ikinci implementasyonu)  — ✅ DONE
 
 **Files:**
 - Modify: `backend/sonar/market/us/prices.py`, `backend/sonar/market/us/__init__.py`,
@@ -502,7 +502,7 @@ git commit -m "feat: rate-limitli ortak HTTP istemcisi (EDGAR/FRED/FINRA paylasi
 - Consumes: `HttpClient` (A2), `PriceSource` (A1)
 - Produces: `AlpacaPrices(key, secret, http)` · `make_price_source() -> PriceSource` (env'e bakar)
 
-- [ ] **Step 1: Failing test**
+- [x] **Step 1: Failing test**
 
 `backend/tests/test_prices.py`:
 ```python
@@ -542,12 +542,12 @@ def test_make_price_source_with_key_uses_alpaca(monkeypatch):
     assert isinstance(make_price_source(), AlpacaPrices)
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `cd backend && uv run pytest tests/test_prices.py -v`
 Expected: FAIL — `ImportError: cannot import name 'AlpacaPrices'`
 
-- [ ] **Step 3: Implement — `prices.py` sonuna ekle**
+- [x] **Step 3: Implement — `prices.py` sonuna ekle**
 
 ```python
 import os
@@ -602,7 +602,7 @@ def make_price_source() -> PriceSource:
 
 Dosyanın başındaki import'lara `from sonar.market.sources.http import HttpClient` ekle.
 
-- [ ] **Step 4: `api/app.py` — plugin'i env'e göre kur**
+- [x] **Step 4: `api/app.py` — plugin'i env'e göre kur**
 
 `_default_registry()`'yi değiştir (satır 22-26):
 ```python
@@ -614,12 +614,12 @@ def _default_registry() -> MarketRegistry:
     return reg
 ```
 
-- [ ] **Step 5: Run tests**
+- [x] **Step 5: Run tests**
 
 Run: `cd backend && uv run pytest -q`
 Expected: 36 passed
 
-- [ ] **Step 6: Slow test — gerçek Alpaca (opsiyonel, key varsa)**
+- [x] **Step 6: Slow test — gerçek Alpaca (opsiyonel, key varsa)**
 
 `backend/tests/test_prices.py` sonuna:
 ```python
@@ -637,7 +637,7 @@ def test_alpaca_real_quote():
     assert q.price.amount > 0
 ```
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add backend/
@@ -646,7 +646,7 @@ git commit -m "feat: Alpaca fiyat kaynagi (Strategy) — key yoksa yfinance fall
 
 ---
 
-### Task A4: OHLCV — domain VO + PriceSource.bars + `tools/_cache.py` + `get_ohlcv`
+### Task A4: OHLCV — domain VO + PriceSource.bars + `tools/_cache.py` + `get_ohlcv`  — ✅ DONE
 
 **Files:**
 - Create: `backend/sonar/domain/candle.py`, `backend/sonar/tools/_cache.py`, `backend/sonar/tools/ohlcv.py`
@@ -658,7 +658,7 @@ git commit -m "feat: Alpaca fiyat kaynagi (Strategy) — key yoksa yfinance fall
 - Produces: `Candle(ts, open, high, low, close, volume)` · `OhlcvSeries(symbol, interval, candles, provenance)` ·
   `cached(cache, key, ttl, fn) -> dict` · `get_ohlcv(ticker, range_, interval, *, registry, cache, ttl) -> dict`
 
-- [ ] **Step 1: Failing test**
+- [x] **Step 1: Failing test**
 
 `backend/tests/test_ohlcv.py`:
 ```python
@@ -721,12 +721,12 @@ def test_cache_key_varies_by_range(conn):
     assert plugin.calls == 2  # farklı range = farklı cache anahtarı
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `cd backend && uv run pytest tests/test_ohlcv.py -v`
 Expected: FAIL — `ModuleNotFoundError: sonar.domain.candle`
 
-- [ ] **Step 3: `domain/candle.py`**
+- [x] **Step 3: `domain/candle.py`**
 
 ```python
 from dataclasses import dataclass
@@ -753,7 +753,7 @@ class OhlcvSeries:
     provenance: Provenance
 ```
 
-- [ ] **Step 4: `tools/_cache.py` — 11 tool'un ortak sarmalı**
+- [x] **Step 4: `tools/_cache.py` — 11 tool'un ortak sarmalı**
 
 ```python
 """Tool'ların cache sarmalı tek yerde. Bu olmadan her tool aynı 6 satırı tekrar ederdi
@@ -774,7 +774,7 @@ def cached(cache: Cache, key: str, ttl: int, compute: Callable[[], dict]) -> dic
     return out
 ```
 
-- [ ] **Step 5: `tools/ohlcv.py`**
+- [x] **Step 5: `tools/ohlcv.py`**
 
 ```python
 from dataclasses import asdict
@@ -809,7 +809,7 @@ def get_ohlcv(
     return cached(cache, f"ohlcv:{symbol.market}:{symbol.ticker}:{range_}:{interval}", ttl, compute)
 ```
 
-- [ ] **Step 6: `PriceSource.bars` + iki implementasyon**
+- [x] **Step 6: `PriceSource.bars` + iki implementasyon**
 
 `market/us/prices.py` — Protocol'e ekle:
 ```python
@@ -876,7 +876,7 @@ class PriceSource(Protocol):
         return self._prices.bars(symbol, range_, interval)
 ```
 
-- [ ] **Step 7: `config.py` — yeni TTL'ler**
+- [x] **Step 7: `config.py` — yeni TTL'ler**
 
 ```python
 QUOTE_TTL_SECONDS = 60
@@ -887,12 +887,12 @@ MACRO_TTL_SECONDS = 21600         # 6 sa
 PEERS_TTL_SECONDS = 86400
 ```
 
-- [ ] **Step 8: Run tests**
+- [x] **Step 8: Run tests**
 
 Run: `cd backend && uv run pytest -q`
 Expected: 39 passed
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 git add backend/
@@ -901,7 +901,7 @@ git commit -m "feat: get_ohlcv — Candle/OhlcvSeries VO + PriceSource.bars + to
 
 ---
 
-### Task A5: `analytics/indicators.py` — göstergeler **elle** (referans değerlerle test)
+### Task A5: `analytics/indicators.py` — göstergeler **elle** (referans değerlerle test)  — ✅ DONE
 
 Kütüphane yok (ADR-0006). Testler **elle hesaplanmış** referanslara karşı — kendi kodumuzun çıktısını
 kendi kodumuzla doğrulamak değersizdir.
@@ -917,7 +917,7 @@ kendi kodumuzla doğrulamak değersizdir.
   `support_resistance(candles, lookback=60) -> dict{support, resistance}` · `obv(candles) -> float` ·
   `volume_anomaly(candles, window=20) -> float`
 
-- [ ] **Step 1: Failing test — referans değerler**
+- [x] **Step 1: Failing test — referans değerler**
 
 `backend/tests/test_indicators.py`:
 ```python
@@ -998,12 +998,12 @@ def test_volume_anomaly_ratio():
     assert volume_anomaly(candles, window=20) == pytest.approx(2.5)
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `cd backend && uv run pytest tests/test_indicators.py -v`
 Expected: FAIL — `ModuleNotFoundError: sonar.analytics`
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `backend/sonar/analytics/indicators.py`:
 ```python
@@ -1120,7 +1120,7 @@ def volume_anomaly(candles: list[Candle], window: int = 20) -> float:
 
 `backend/sonar/analytics/__init__.py`: boş.
 
-- [ ] **Step 4: `pyproject.toml` — pandas/numpy'ı açıkça beyan et**
+- [x] **Step 4: `pyproject.toml` — pandas/numpy'ı açıkça beyan et**
 
 `dependencies` listesine ekle (yfinance zaten transitif getiriyor; import ediyorsak beyan ederiz):
 ```toml
@@ -1129,19 +1129,19 @@ def volume_anomaly(candles: list[Candle], window: int = 20) -> float:
 ```
 Sonra: `cd backend && uv sync`
 
-- [ ] **Step 5: `test_layering.py` — `analytics` de provider-free olsun**
+- [x] **Step 5: `test_layering.py` — `analytics` de provider-free olsun**
 
 `PROVIDER_FREE_DIRS` satırını değiştir:
 ```python
 PROVIDER_FREE_DIRS = ["api", "tools", "domain", "store", "market", "analytics"]
 ```
 
-- [ ] **Step 6: Run tests**
+- [x] **Step 6: Run tests**
 
 Run: `cd backend && uv run pytest -q`
 Expected: 50 passed
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add backend/
@@ -1275,7 +1275,7 @@ git commit -m "feat: get_technicals — plugin'e dokunmadan OHLCV uzerinden hesa
 
 ---
 
-### Task A7: EDGAR — ticker↔CIK + companyfacts → `get_fundamentals`
+### Task A7: EDGAR — ticker↔CIK + companyfacts → `get_fundamentals`  — ✅ DONE
 
 SEC'in resmî XBRL verisi. Bu task'ta kurulan `EdgarClient` (CIK haritası + rate-limitli erişim)
 **Faz B'nin 13F/Form 4 tabanı** — bir kez kurulur, üç kez kullanılır.
@@ -1293,7 +1293,7 @@ SEC'in resmî XBRL verisi. Bu task'ta kurulan `EdgarClient` (CIK haritası + rat
   `Fundamentals(symbol, revenue, net_income, gross_margin, net_margin, revenue_growth_yoy, eps, pe, debt_to_equity, period, provenance)` ·
   `get_fundamentals(ticker, *, registry, cache, ttl) -> dict`
 
-- [ ] **Step 1: Failing test — CIK haritası ve XBRL kavram çıkarımı**
+- [x] **Step 1: Failing test — CIK haritası ve XBRL kavram çıkarımı**
 
 `backend/tests/test_edgar.py`:
 ```python
@@ -1363,12 +1363,12 @@ def test_fundamentals_computes_margin_and_growth():
     assert f.provenance.source == "SEC EDGAR companyfacts"
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `cd backend && uv run pytest tests/test_edgar.py -v`
 Expected: FAIL — `ModuleNotFoundError: sonar.market.us.edgar`
 
-- [ ] **Step 3: `domain/fundamentals.py`**
+- [x] **Step 3: `domain/fundamentals.py`**
 
 ```python
 from dataclasses import dataclass
@@ -1391,7 +1391,7 @@ class Fundamentals:
 > Değerleme çarpanları (P/E) burada **yok**: EDGAR fiyat vermez. P/E, tool katmanında fiyat × EPS ile
 > hesaplanır — kaynak ayrımı VO'ya sızmasın diye Fundamentals saf muhasebe verisi kalır.
 
-- [ ] **Step 4: `market/us/edgar.py`**
+- [x] **Step 4: `market/us/edgar.py`**
 
 ```python
 """SEC EDGAR — resmî, ücretsiz, key'siz. Rate-limit ve User-Agent zorunlu (HttpClient uygular).
@@ -1478,7 +1478,7 @@ class EdgarClient:
         )
 ```
 
-- [ ] **Step 5: `tools/fundamentals.py`**
+- [x] **Step 5: `tools/fundamentals.py`**
 
 ```python
 from dataclasses import asdict
@@ -1506,7 +1506,7 @@ def get_fundamentals(
     return cached(cache, f"fundamentals:{symbol.market}:{symbol.ticker}", ttl, compute)
 ```
 
-- [ ] **Step 6: Plugin'e bağla — `market/us/__init__.py`**
+- [x] **Step 6: Plugin'e bağla — `market/us/__init__.py`**
 
 ```python
 import os
@@ -1531,7 +1531,7 @@ class USMarketPlugin(BaseMarketPlugin):
         return self._edgar.fundamentals(symbol)
 ```
 
-- [ ] **Step 7: Tool testi**
+- [x] **Step 7: Tool testi**
 
 `backend/tests/test_fundamentals_tool.py`:
 ```python
@@ -1564,7 +1564,7 @@ def test_fundamentals_tool_shape(conn):
     }
 ```
 
-- [ ] **Step 8: Slow test — gerçek EDGAR**
+- [x] **Step 8: Slow test — gerçek EDGAR**
 
 `backend/tests/test_edgar.py` sonuna:
 ```python
@@ -1577,12 +1577,12 @@ def test_real_edgar_fundamentals():
     assert f.revenue and f.revenue > 1e11  # Apple yıllık geliri 100B$ üstü
 ```
 
-- [ ] **Step 9: Run tests**
+- [x] **Step 9: Run tests**
 
 Run: `cd backend && uv run pytest -q && uv run pytest -m slow -q -k edgar`
 Expected: 56 passed · slow: 1 passed
 
-- [ ] **Step 10: Commit**
+- [x] **Step 10: Commit**
 
 ```bash
 git add backend/
@@ -1763,7 +1763,7 @@ git commit -m "feat: get_peers — EDGAR SIC kodu uzerinden sektor eslikcileri"
 
 ---
 
-### Task A9: `get_news` — RSS (ortak parser + US feed listesi)
+### Task A9: `get_news` — RSS (ortak parser + US feed listesi)  — ✅ DONE
 
 **Files:**
 - Create: `backend/sonar/domain/news.py`, `backend/sonar/market/sources/rss.py`,
@@ -1776,7 +1776,7 @@ git commit -m "feat: get_peers — EDGAR SIC kodu uzerinden sektor eslikcileri"
 - Produces: `NewsItem(title, url, source, published_at)` · `parse_rss(xml, source) -> list[NewsItem]` ·
   `USNews(http).for_symbol(symbol) -> list[NewsItem]` · `get_news(ticker, *, registry, cache, ttl) -> dict`
 
-- [ ] **Step 1: Failing test**
+- [x] **Step 1: Failing test**
 
 `backend/tests/test_news.py`:
 ```python
@@ -1825,12 +1825,12 @@ def test_us_news_fetches_and_sorts_newest_first():
     assert [i.title for i in items][:1] == ["NVIDIA beats estimates"]
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `cd backend && uv run pytest tests/test_news.py -v`
 Expected: FAIL — `ModuleNotFoundError: sonar.market.sources.rss`
 
-- [ ] **Step 3: `domain/news.py`**
+- [x] **Step 3: `domain/news.py`**
 
 ```python
 from dataclasses import dataclass
@@ -1844,7 +1844,7 @@ class NewsItem:
     published_at: int | None  # unix saniye
 ```
 
-- [ ] **Step 4: `market/sources/rss.py` — ortak parser (stdlib)**
+- [x] **Step 4: `market/sources/rss.py` — ortak parser (stdlib)**
 
 ```python
 """RSS → NewsItem. Market bilmez; feed URL'lerini plugin verir.
@@ -1891,7 +1891,7 @@ def parse_rss(xml: str, source: str) -> list[NewsItem]:
     return items
 ```
 
-- [ ] **Step 5: `market/us/news.py`**
+- [x] **Step 5: `market/us/news.py`**
 
 ```python
 """US haber kaynakları. Feed listesi burada (market bilgisi), parse ortakta."""
@@ -1915,7 +1915,7 @@ class USNews:
         return items[:limit]
 ```
 
-- [ ] **Step 6: `tools/news.py` + plugin bağlantısı**
+- [x] **Step 6: `tools/news.py` + plugin bağlantısı**
 
 ```python
 from dataclasses import asdict
@@ -1950,12 +1950,12 @@ def get_news(
         return self._news.for_symbol(symbol)
 ```
 
-- [ ] **Step 7: Run tests**
+- [x] **Step 7: Run tests**
 
 Run: `cd backend && uv run pytest -q`
 Expected: 61 passed
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add backend/
@@ -1964,7 +1964,7 @@ git commit -m "feat: get_news — ortak RSS parser (stdlib) + US feed listesi"
 
 ---
 
-### Task A10: `get_macro_snapshot` — FRED (key'siz) + GlobalMacro
+### Task A10: `get_macro_snapshot` — FRED (key'siz) + GlobalMacro  — ✅ DONE
 
 **GlobalMacro fiyat kaynağına bağlanmaz:** Alpaca yalnız ABD hissesi verir; VIX/DXY/petrol orada yok.
 Hepsi FRED'de var (`VIXCLS`, `DTWEXBGS`, `DCOILWTICO`) → tek kaynak, key yok, ters bağımlılık yok.
@@ -1982,7 +1982,7 @@ Hepsi FRED'de var (`VIXCLS`, `DTWEXBGS`, `DCOILWTICO`) → tek kaynak, key yok, 
   `USMacro(fred).snapshot() -> LocalSnapshot(fed_funds, cpi_yoy, yield_10y, yield_2y, curve_10y_2y)` ·
   `MacroSnapshot(global_, local, provenance)` · `get_macro_snapshot(*, registry, cache, ttl) -> dict`
 
-- [ ] **Step 1: Failing test**
+- [x] **Step 1: Failing test**
 
 `backend/tests/test_macro.py`:
 ```python
@@ -2036,12 +2036,12 @@ def test_us_snapshot_computes_curve_and_cpi_yoy():
     assert local.cpi_yoy == pytest.approx(5.0)        # 315 vs 300, yıllık
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `cd backend && uv run pytest tests/test_macro.py -v`
 Expected: FAIL — `ModuleNotFoundError: sonar.market.sources.fred`
 
-- [ ] **Step 3: `domain/macro.py`**
+- [x] **Step 3: `domain/macro.py`**
 
 ```python
 from dataclasses import dataclass
@@ -2074,7 +2074,7 @@ class MacroSnapshot:
     provenance: Provenance
 ```
 
-- [ ] **Step 4: `market/sources/fred.py`**
+- [x] **Step 4: `market/sources/fred.py`**
 
 ```python
 """FRED — key'siz CSV endpoint'i. (Resmî API key ister; grafik CSV'si istemez → key yok.)"""
@@ -2108,7 +2108,7 @@ class FredClient:
         return out
 ```
 
-- [ ] **Step 5: `market/sources/global_macro.py`**
+- [x] **Step 5: `market/sources/global_macro.py`**
 
 ```python
 """Global rejim serileri — her market plugin'i bunu KULLANIR (miras almaz)."""
@@ -2130,7 +2130,7 @@ class GlobalMacro:
         return GlobalSnapshot(vix=v.get(VIX), dxy=v.get(DXY), wti=v.get(WTI))
 ```
 
-- [ ] **Step 6: `market/us/macro.py`**
+- [x] **Step 6: `market/us/macro.py`**
 
 ```python
 """US'a özel makro. FRED'in aynı istemcisini kullanır; seri seçimi market bilgisidir."""
@@ -2177,7 +2177,7 @@ class USMacro:
         return round((latest_val - prior) / prior * 100, 2)
 ```
 
-- [ ] **Step 7: `tools/macro.py` + plugin**
+- [x] **Step 7: `tools/macro.py` + plugin**
 
 ```python
 from dataclasses import asdict
@@ -2220,7 +2220,7 @@ def get_macro_snapshot(
         )
 ```
 
-- [ ] **Step 8: Slow test — gerçek FRED**
+- [x] **Step 8: Slow test — gerçek FRED**
 
 `backend/tests/test_macro.py` sonuna:
 ```python
@@ -2232,12 +2232,12 @@ def test_real_fred_returns_vix():
     assert snap.vix and 5 < snap.vix < 100  # VIX makul aralıkta
 ```
 
-- [ ] **Step 9: Run tests**
+- [x] **Step 9: Run tests**
 
 Run: `cd backend && uv run pytest -q && uv run pytest -m slow -q -k fred`
 Expected: 66 passed · slow: 1 passed
 
-- [ ] **Step 10: Commit**
+- [x] **Step 10: Commit**
 
 ```bash
 git add backend/
