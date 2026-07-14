@@ -1150,7 +1150,7 @@ git commit -m "feat: analytics/indicators — RSI/EMA/MACD/BB/S-R/OBV/hacim anom
 
 ---
 
-### Task A6: `tools/technicals.py` — plugin'e dokunmayan tool
+### Task A6: `tools/technicals.py` — plugin'e dokunmayan tool  — ✅ DONE
 
 Bu tool **market plugin'ini hiç çağırmaz**: OHLCV'yi `get_ohlcv` üzerinden alır, hesabı `analytics`'te yapar.
 TR plugin'i geldiğinde bu dosya tek satır değişmez — kat ayrımının somut sınaması.
@@ -1163,7 +1163,7 @@ TR plugin'i geldiğinde bu dosya tek satır değişmez — kat ayrımının somu
 - Consumes: `get_ohlcv` (A4), `analytics.indicators` (A5)
 - Produces: `get_technicals(ticker, *, registry, cache, ttl) -> dict`
 
-- [ ] **Step 1: Failing test**
+- [x] **Step 1: Failing test**
 
 `backend/tests/test_technicals_tool.py`:
 ```python
@@ -1205,12 +1205,12 @@ def test_technicals_returns_computed_indicators(conn):
     assert "obv" in out and "bollinger" in out and "ema50" in out
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `cd backend && uv run pytest tests/test_technicals_tool.py -v`
 Expected: FAIL — `ModuleNotFoundError: sonar.tools.technicals`
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 ```python
 """Teknik gösterge tool'u — market plugin'ine DOKUNMAZ.
@@ -1261,12 +1261,12 @@ def get_technicals(
     return cached(cache, f"technicals:{symbol.market}:{symbol.ticker}", ttl, compute)
 ```
 
-- [ ] **Step 4: Run tests**
+- [x] **Step 4: Run tests**
 
 Run: `cd backend && uv run pytest -q`
 Expected: 51 passed
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add backend/sonar/tools/technicals.py backend/tests/test_technicals_tool.py
@@ -1591,7 +1591,7 @@ git commit -m "feat: EDGAR istemcisi (ticker<->CIK + companyfacts) + get_fundame
 
 ---
 
-### Task A8: `get_peers` — EDGAR SIC koduyla sektör eşlikçileri
+### Task A8: `get_peers` — EDGAR SIC koduyla sektör eşlikçileri  — ✅ DONE
 
 **Files:**
 - Modify: `backend/sonar/market/us/edgar.py`, `backend/sonar/market/us/__init__.py`
@@ -1603,7 +1603,7 @@ git commit -m "feat: EDGAR istemcisi (ticker<->CIK + companyfacts) + get_fundame
 - Produces: `EdgarClient.sic_for(symbol) -> tuple[str, str]` (kod, tanım) · `EdgarClient.peers(symbol) -> list[str]` ·
   `get_peers(ticker, *, registry, cache, ttl) -> dict{ticker, sic, sic_description, peers, source}`
 
-- [ ] **Step 1: Failing test**
+- [x] **Step 1: Failing test**
 
 `backend/tests/test_peers.py`:
 ```python
@@ -1647,12 +1647,12 @@ def test_peers_share_sic_and_exclude_self():
     assert peers == ["AMD"]  # aynı SIC (3674), kendisi hariç, AAPL farklı SIC
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `cd backend && uv run pytest tests/test_peers.py -v`
 Expected: FAIL — `AttributeError: 'EdgarClient' object has no attribute 'sic_for'`
 
-- [ ] **Step 3: `edgar.py`'ye ekle**
+- [x] **Step 3: `edgar.py`'ye ekle**
 
 ```python
     def submissions(self, cik: str) -> dict:
@@ -1695,7 +1695,7 @@ Expected: FAIL — `AttributeError: 'EdgarClient' object has no attribute 'sic_f
 > indirip cache'e yazan** yola geçilir (`store` içinde `sic(ticker, sic_code)` tablosu, ilk çağrıda
 > doldurulur). Karar ölçümle verilir, tahminle değil.
 
-- [ ] **Step 4: `tools/peers.py`**
+- [x] **Step 4: `tools/peers.py`**
 
 ```python
 from sonar.domain.symbol import Symbol
@@ -1725,7 +1725,7 @@ def get_peers(
         return self._edgar.peers(symbol)
 ```
 
-- [ ] **Step 5: Ölç — gerçek EDGAR'da süre**
+- [x] **Step 5: Ölç — gerçek EDGAR'da süre**
 
 `backend/tests/test_peers.py` sonuna:
 ```python
@@ -1749,12 +1749,12 @@ Run: `cd backend && uv run pytest -m slow -q -k peers`
 Expected: PASS. **FAIL ederse** (5sn'yi aştıysa) yukarıdaki uyarıdaki cache'li yola geç ve testi
 tekrar koştur — task bitmeden.
 
-- [ ] **Step 6: Run tests**
+- [x] **Step 6: Run tests**
 
 Run: `cd backend && uv run pytest -q`
 Expected: 58 passed
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add backend/
@@ -2246,7 +2246,7 @@ git commit -m "feat: get_macro_snapshot — FRED (key'siz) + GlobalMacro (VIX/DX
 
 ---
 
-### Task A11: DeepAnalysis recipe — deterministik StateGraph
+### Task A11: DeepAnalysis recipe — deterministik StateGraph  — ✅ DONE
 
 `gather` LLM içermez, tool'ları **paralel** çağırır; bir kaynak düşerse rapor **düşmez** (o bölüm
 `unavailable` işaretlenir). `synthesize` **tek** LLM çağrısıdır, token-token akar. Döngü yok → sağlayıcıdan
@@ -2261,7 +2261,7 @@ bağımsız (local Qwen3'te de aynı).
 - Produces: `gather(ticker, *, registry, cache) -> dict` (bölüm adı → veri | `{"unavailable": str}`) ·
   `make_analyzer(*, registry, cache) -> async (ticker) -> AsyncIterator[tuple[str, dict]]` (Sonar SSE event'leri)
 
-- [ ] **Step 1: Failing test — kısmi hata raporu düşürmez**
+- [x] **Step 1: Failing test — kısmi hata raporu düşürmez**
 
 `backend/tests/test_deep_analysis.py`:
 ```python
@@ -2343,12 +2343,12 @@ async def test_analyzer_streams_steps_chart_then_text(conn):
 > `pytest-asyncio` gerekiyor: `backend/pyproject.toml` → `dev = [..., "pytest-asyncio>=0.24"]`,
 > `[tool.pytest.ini_options]` içine `asyncio_mode = "auto"`. Sonra `uv sync`.
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `cd backend && uv run pytest tests/test_deep_analysis.py -v`
 Expected: FAIL — `ModuleNotFoundError: sonar.agent.recipes`
 
-- [ ] **Step 3: `agent/events.py` — taksonomiyi genişlet (yeniden yazma yok)**
+- [x] **Step 3: `agent/events.py` — taksonomiyi genişlet (yeniden yazma yok)**
 
 Mevcut sabitlerin altına ekle:
 ```python
@@ -2358,7 +2358,7 @@ QUOTE_TICK = "quote-tick"
 ```
 Docstring'deki "M2'de quote-tick · chart **eklenir**" cümlesi artık gerçek — dokunma.
 
-- [ ] **Step 4: `agent/recipes/deep_analysis.py`**
+- [x] **Step 4: `agent/recipes/deep_analysis.py`**
 
 ```python
 """DeepAnalysis (UC1) — deterministik reçete (ADR-0007). ReAct YOK, döngü YOK.
@@ -2483,12 +2483,12 @@ def _default_model_factory():
 
 Dosyanın başına `import json` ekle (yukarıdaki import bloğunda).
 
-- [ ] **Step 5: Run tests**
+- [x] **Step 5: Run tests**
 
 Run: `cd backend && uv run pytest tests/test_deep_analysis.py -v`
 Expected: 2 passed
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add backend/
@@ -2936,7 +2936,7 @@ git commit -m "feat: Alpaca WebSocket canli tick — polling ile ayni quote-tick
 
 ---
 
-### Task A15: Yeni tool'ları ReAct chat agent'ına aç
+### Task A15: Yeni tool'ları ReAct chat agent'ına aç  — ✅ DONE
 
 Aynı deep tool'lar iki tüketiciye açık (ADR-0007): recipe'ye doğrudan Python çağrısı, chat'e `@tool`.
 
@@ -2947,7 +2947,7 @@ Aynı deep tool'lar iki tüketiciye açık (ADR-0007): recipe'ye doğrudan Pytho
 **Interfaces:**
 - Produces: `make_tools(*, registry, cache) -> list` (7 tool: quote · ohlcv · technicals · fundamentals · news · macro · peers)
 
-- [ ] **Step 1: Failing test**
+- [x] **Step 1: Failing test**
 
 `backend/tests/test_agent_tool.py` sonuna:
 ```python
@@ -2968,12 +2968,12 @@ def test_make_tools_exposes_seven_deep_tools(conn):
     }
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `cd backend && uv run pytest tests/test_agent_tool.py -v`
 Expected: FAIL — `ImportError: cannot import name 'make_tools'`
 
-- [ ] **Step 3: `agent/tools.py` — `make_quote_tool`'un yanına**
+- [x] **Step 3: `agent/tools.py` — `make_quote_tool`'un yanına**
 
 ```python
 from sonar import config
@@ -3045,7 +3045,7 @@ def make_tools(*, registry: MarketRegistry, cache: Cache) -> list:
     ]
 ```
 
-- [ ] **Step 4: `agent/graph.py` — tek tool yerine hepsi**
+- [x] **Step 4: `agent/graph.py` — tek tool yerine hepsi**
 
 `make_streamer` içindeki lazy kurulum bloğunda:
 ```python
@@ -3059,12 +3059,12 @@ def make_tools(*, registry: MarketRegistry, cache: Cache) -> list:
 (`ttl` parametresi artık `make_streamer`'da kullanılmıyor — imzadan **kaldır** ve `api/app.py`'deki
 çağrıyı da güncelle: `make_streamer(registry=registry, cache=cache)`.)
 
-- [ ] **Step 5: Run tests**
+- [x] **Step 5: Run tests**
 
 Run: `cd backend && uv run pytest -q`
 Expected: 75 passed
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add backend/
