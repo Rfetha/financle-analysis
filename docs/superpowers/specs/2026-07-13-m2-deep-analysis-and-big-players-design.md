@@ -216,6 +216,7 @@ ticker ─▶   │ macro · fundamentals · ohlcv+technicals · news  │ ─�
 | `POST /api/analyze` | SSE: `analysis-step` → `chart` → `text-delta`* → `done` \| `error` |
 | `GET /api/ohlcv/{ticker}?range=6mo` | JSON mum serisi (grafik bunu çeker) |
 | `GET /api/stream/quotes?tickers=…` | SSE: `quote-tick` |
+| `GET /api/ingest/status` *(B)* | 13F ingestion durumu (indiriliyor/hazır/hata + %) |
 
 **Event taksonomisi genişler, yeniden yazılmaz** (ADR-0008): `analysis-step` · `chart` · `quote-tick`
 eklenir; M1 tipleri aynen durur.
@@ -234,22 +235,67 @@ dosyalarında CUSIP + SYMBOL birlikte yayınlanıyor. **Bu bir varsayım — öl
 (M6'daki "önce ölç, sonra kur" disiplininin aynısı).
 
 **Task B0 — spike (kod yok, ölçüm):**
-1. DERA çeyreklik 13F veri seti (`SUBMISSION.tsv` + `INFOTABLE.tsv`) → kaç satır, kaç MB, SQLite'a
-   yükleme süresi?
-2. **CUSIP→ticker eşleşme oranı** (FTD dosyası ile). Eşik: **%90+**.
+1. DERA çeyreklik 13F veri seti (`SUBMISSION` · `COVERPAGE` · `INFOTABLE`) → kaç satır, kaç MB,
+   SQLite'a yükleme süresi? **Filtreli ve filtresiz — iki ayrı ölçüm** (aşağıdaki açık karar için).
+2. **CUSIP→ticker eşleşme oranı.** Tek yola bel bağlanmaz: (i) SEC *fails-to-deliver* dosyası
+   (CUSIP+SYMBOL birlikte) **+** (ii) 13F issuer adı ↔ `company_tickers.json` fuzzy eşleşmesi.
+   İkisi birlikte ölçülür. Eşik: **%90+**.
 3. İki çeyreği yan yana koyup NVDA'da bilinen bir filer'ın Δ'sını **elle doğrula**.
+4. SEC **13f-2 / Form SHO** toplulaştırılmış short verisi yürürlükte mi? Canlıysa bedava ek sinyal
+   (menkul kıymet bazında, isimsiz).
 
 **Spike kararı verir:**
-- **Geçerse → toplu indeks.** ZIP → SQLite `holdings(cusip, filer_cik, quarter, shares, value)`.
+- **Geçerse → toplu indeks.** SQLite `holdings(cusip, filer_cik, quarter, shares, value, put_call)`.
   "Kim tutuyor" = SQL, *tüm* filer'lar. `get_filer_holdings` bedava gelir.
 - **Geçmezse → küratörlü filer evreni.** ~50 CIK (Berkshire, BofA, Citadel, BlackRock…) — sadece
   onların 13F'i. Dataroma'nın yaptığı da bu. Kapsam dar, sinyal aynı.
 
-**Form 4 spike'a bağlı değil** — per-ticker: issuer CIK → filing listesi → XML parse. 2 gün gecikmeli,
-gerçek isim.
+### Depolama ve tazeleme
 
-**Short interest spike'a bağlı değil** — FINRA'nın ayda 2 kez yayımladığı dosya, tek parse
-(`market/us/finra.py`). Days-to-cover = açık short / ortalama günlük hacim → `analytics`.
+- **Ham veri: son 2 çeyrek** (Δ ve filer detayı için yeter). Eskisi silinir.
+- **Trend için özet satırı kalır:** çeyrek silinirken sembol başına **tek** satır bırakılır —
+  `symbol_quarterly(symbol, quarter, total_inst_shares, filer_count, pct_of_float)`. 10k sembol × 8 çeyrek
+  ≈ birkaç MB. Ham veri 2 çeyrek, **trend sınırsız geriye**. (Bu olmadan "sahiplik trendi %62→%67"
+  çıktısı verilemezdi — 2 çeyrek bir Δ'dır, trend değil.)
+- **İlk indirme uygulama açılışında, arka planda** (kullanıcı sorduğunda veri hazır olsun).
+  Sessiz değil: `GET /api/ingest/status` + arayüzde küçük durum satırı — 100 MB'lık indirme gizlenmez.
+  **Faz A bundan bağımsız:** 13F inmemişken de derin analiz çalışır, big-players bölümü
+  *"veri hazırlanıyor"* der.
+
+> **AÇIK KARAR (spike verisiyle kapanacak):** ticker'a eşleşmeyen CUSIP satırları (tahvil, opsiyon,
+> eşleşmeyen kırıntı) atılsın mı? Atmak diski ~%40 küçültür, gösterilemeyen satır kaybedilir.
+> Spike her iki boyutu da ölçer; karar sayıya bakılarak verilir.
+
+### Düzeltme (amendment) kuralı — naif "en son kazanır" YANLIŞ
+
+`COVERPAGE`'de iki amendment tipi var, davranışları farklı:
+- `RESTATEMENT` → bildirimi **değiştirir**: o filer+çeyreğin eski satırlarını at, yenilerini koy.
+- `NEW HOLDINGS` → **ekleme**: eskiyi koru, üstüne ekle.
+
+Ayrılmazsa Δ saçmalar (pozisyon ya kaybolur ya iki katına çıkar).
+
+### 13F'in sınırı — ve nasıl doldurulur
+
+13F **yalnız long ABD hissesi + borsada işlem gören opsiyonları** gösterir.
+
+| Boşluk | Doldurulur mu | Nasıl | Maliyet |
+|---|---|---|---|
+| Opsiyon (put/call) pozisyonu | ✅ | `INFOTABLE.PUTCALL` sütunu — **zaten parse ettiğimiz dosyada** | **0** |
+| Fonların short/türev/tahvili | ⚠️ kısmen | Form **N-PORT** (60 gün gecikmeli, yalnız kayıtlı fonlar) | **v2** |
+| Toplam short (isimsiz) | ✅ | FINRA short interest (+ 13f-2 varsa) | planda |
+| Banka/hedge fund'ın **short**'u | ❌ | ABD'de bildirim yok | — |
+| **Swap / TRS** | ❌ | Archegos boşluğu — kimse göremez, Bloomberg dahil | — |
+
+`PUTCALL` bedava geldiği için **alınıyor**: *"BofA: 100M lot NVDA long + 2M lot NVDA PUT"* — "hedge mi,
+inanç mı" sorusunu ciddi ölçüde cevaplar.
+
+**Zorunlu dürüstlük notu** (tool çıktısında, dipnotta değil — LLM sentezinde de görünsün):
+*"13F · 2026-Q1 · 45 gün gecikmeli · long ABD hissesi + listed opsiyon. Short ve swap görünmez —
+bu bir eksiklik değil, verinin sınırı."*
+
+**Form 4 ve short interest spike'a bağlı değil** — Form 4: issuer CIK → filing listesi → XML parse
+(2 gün gecikmeli, gerçek isim). Short interest: FINRA'nın ayda 2 kez yayımladığı dosya, tek parse
+(`market/us/finra.py`); days-to-cover = açık short / ortalama günlük hacim → `analytics`.
 
 **Bütün hesap `analytics/`'te**, plugin'de değil — her market için aynı matematik:
 `holdings.py` (Δ sınıflaması, float %, sahiplik trendi) · `insiders.py` (cluster) · `indicators.py`
@@ -271,7 +317,9 @@ gerçek isim.
 - **Günlük short volume · dark pool/ATS** (FINRA) → **v2**. Veri ücretsiz ve mevcut; alınmama sebebi
   maliyet değil **yanlış-okunabilirlik**: günlük short volume tipik bir S&P hissesinde her gün %40-50
   (MM hedge print'i), ATS'teki isim venue'dur alıcı değil. v2'de, ne olmadığını doğru anlatan bir UI ile.
-- **Opsiyon akışı** — ücretli (OPRA), non-goal.
+- **Opsiyon *akışı*** — ücretli (OPRA), non-goal. *(Opsiyon **pozisyonu** 13F PUTCALL'dan geliyor — §7.)*
+- **Form N-PORT** (fonların short/türev/tahvil detayı, 60 gün gecikmeli) → **v2**: ayrı şema, ayrı parser;
+  Faz B'yi şişirir.
 - 13D/13G (v2) · ETF holdings (v2) · `search_symbols` fuzzy çözümleme (ayrı iş) · Settings ekranı (M6) ·
   portföy/watchlist (M3).
 
