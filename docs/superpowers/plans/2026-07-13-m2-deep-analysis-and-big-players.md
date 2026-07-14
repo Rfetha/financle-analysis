@@ -2405,37 +2405,41 @@ VERİ:
 {data}
 """
 
+# Bölüm adı → o bölümü hesaplayan fonksiyon. TEK kaynak: hem gather hem analyze bunu kullanır
+# (ayrı listeler tutulsaydı biri güncellenip diğeri unutulurdu).
+def _section_fns(ticker: str, ctx: dict) -> dict[str, Callable[[], dict]]:
+    return {
+        "macro": lambda: get_macro_snapshot(**ctx, ttl=config.MACRO_TTL_SECONDS),
+        "fundamentals": lambda: get_fundamentals(
+            ticker, **ctx, ttl=config.FUNDAMENTALS_TTL_SECONDS
+        ),
+        "technicals": lambda: get_technicals(ticker, **ctx, ttl=config.OHLCV_TTL_SECONDS),
+        "news": lambda: get_news(ticker, **ctx, ttl=config.NEWS_TTL_SECONDS),
+        "peers": lambda: get_peers(ticker, **ctx, ttl=config.PEERS_TTL_SECONDS),
+    }
+
+
 SECTIONS = ("macro", "fundamentals", "technicals", "news", "peers")
 
 
+def _run(ticker: str, name: str, fn: Callable[[], dict]) -> dict:
+    """Tek bölüm. Kaynak düşerse rapor DÜŞMEZ — bölüm 'unavailable' olur, hata loglanır."""
+    try:
+        return fn()
+    except Unsupported as e:
+        logger.info("analiz[{}] {} desteklenmiyor: {}", ticker, name, e)
+        return {"unavailable": str(e)}
+    except Exception as e:  # noqa: BLE001
+        # Why: tek bir dış kaynağın çökmesi (EDGAR 500, RSS timeout) raporun tamamını
+        # düşürmemeli. Hata YUTULMUYOR — loglanıyor ve çıktıda görünür kalıyor.
+        logger.warning("analiz[{}] {} düştü: {}", ticker, name, e)
+        return {"unavailable": f"{type(e).__name__}: {e}"}
+
+
 def gather(ticker: str, *, registry, cache) -> dict:
-    """Deep tool'ları çağırır. LLM yok. Bir bölüm patlarsa diğerleri ayakta kalır."""
-
-    def run(name: str, fn: Callable[[], dict]) -> dict:
-        try:
-            return fn()
-        except Unsupported as e:
-            logger.info("analiz[{}] {} desteklenmiyor: {}", ticker, name, e)
-            return {"unavailable": str(e)}
-        except Exception as e:  # noqa: BLE001
-            # Why: tek bir dış kaynağın çökmesi (EDGAR 500, RSS timeout) raporun tamamını
-            # düşürmemeli. Hata YUTULMUYOR — loglanıyor ve çıktıda görünür kalıyor.
-            logger.warning("analiz[{}] {} düştü: {}", ticker, name, e)
-            return {"unavailable": f"{type(e).__name__}: {e}"}
-
-    ctx = {"registry": registry, "cache": cache}
-    return {
-        "macro": run("macro", lambda: get_macro_snapshot(**ctx, ttl=config.MACRO_TTL_SECONDS)),
-        "fundamentals": run(
-            "fundamentals",
-            lambda: get_fundamentals(ticker, **ctx, ttl=config.FUNDAMENTALS_TTL_SECONDS),
-        ),
-        "technicals": run(
-            "technicals", lambda: get_technicals(ticker, **ctx, ttl=config.OHLCV_TTL_SECONDS)
-        ),
-        "news": run("news", lambda: get_news(ticker, **ctx, ttl=config.NEWS_TTL_SECONDS)),
-        "peers": run("peers", lambda: get_peers(ticker, **ctx, ttl=config.PEERS_TTL_SECONDS)),
-    }
+    """Deep tool'ları çağırır (senkron, sıralı). LLM yok."""
+    fns = _section_fns(ticker, {"registry": registry, "cache": cache})
+    return {name: _run(ticker, name, fns[name]) for name in SECTIONS}
 
 
 def make_analyzer(*, registry, cache, model_factory: Callable | None = None):
@@ -2443,25 +2447,23 @@ def make_analyzer(*, registry, cache, model_factory: Callable | None = None):
 
     async def analyze(ticker: str):
         loop = asyncio.get_running_loop()
-        ctx = {"registry": registry, "cache": cache}
+        fns = _section_fns(ticker, {"registry": registry, "cache": cache})
 
-        # Bölümleri paralel topla — her biri bitince adım event'i yolla.
+        # Bölümler PARALEL koşar; her biri bitince adım event'i akar (sıra korunur).
         tasks = {
-            name: loop.run_in_executor(None, lambda n=name: _one(n, ticker, ctx))
-            for name in SECTIONS
+            name: loop.run_in_executor(None, _run, ticker, name, fns[name]) for name in SECTIONS
         }
         data: dict[str, dict] = {}
-        for name, task in tasks.items():
-            data[name] = await task
-            ok = "unavailable" not in data[name]
-            yield events.ANALYSIS_STEP, {"section": name, "ok": ok}
+        for name in SECTIONS:
+            data[name] = await tasks[name]
+            yield events.ANALYSIS_STEP, {
+                "section": name,
+                "ok": "unavailable" not in data[name],
+            }
 
         yield events.CHART, {"ticker": ticker.upper(), "range": "6mo", "interval": "1d"}
 
-        import json
-
-        factory = model_factory or _default_model_factory
-        model = factory()
+        model = (model_factory or _default_model_factory)()
         prompt = SYNTHESIS_PROMPT.format(
             ticker=ticker.upper(), data=json.dumps(data, ensure_ascii=False, indent=2)
         )
@@ -2473,20 +2475,13 @@ def make_analyzer(*, registry, cache, model_factory: Callable | None = None):
     return analyze
 
 
-def _one(name: str, ticker: str, ctx: dict) -> dict:
-    return gather(ticker, **ctx)[name]
-
-
 def _default_model_factory():
     from sonar.agent.model import default_model
 
     return default_model()
 ```
 
-> **Uygulayıcıya not:** `_one` yukarıdaki naif halinde `gather`'ı bölüm başına bir kez çağırır →
-> 5 kat fazla iş. **Düzelt:** `gather`'ı bölüm-fonksiyonu sözlüğüne ayır (`_SECTION_FN: dict[str, Callable]`)
-> ve hem `gather` hem `analyze` aynı sözlüğü kullansın. Test (`test_gather_...`) her iki halde de geçer —
-> bu yüzden düzeltmeyi **atlamayın**; doğruluk değil verimlilik sorunudur ama 5× dış çağrı demektir.
+Dosyanın başına `import json` ekle (yukarıdaki import bloğunda).
 
 - [ ] **Step 5: Run tests**
 
