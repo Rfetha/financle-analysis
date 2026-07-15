@@ -11,12 +11,17 @@ from sonar.market.registry import MarketRegistry
 from sonar.market.us import USMarketPlugin
 from sonar.market.base import UnknownSymbol
 from sonar.tools.quote import get_quote
+from sonar.tools.ohlcv import get_ohlcv
 from sonar.agent import events
 
 
 class ChatRequest(BaseModel):
     message: str
     thread_id: str | None = None
+
+
+class AnalyzeRequest(BaseModel):
+    ticker: str
 
 
 def _default_registry() -> MarketRegistry:
@@ -31,6 +36,7 @@ def create_app(
     registry: MarketRegistry | None = None,
     cache: Cache | None = None,
     streamer=None,
+    analyzer=None,
 ) -> FastAPI:
     app = FastAPI(title="Sonar")
     registry = registry or _default_registry()
@@ -44,6 +50,14 @@ def create_app(
 
             streamer = make_streamer(registry=registry, cache=cache)
         return streamer
+
+    def _get_analyzer():
+        nonlocal analyzer
+        if analyzer is None:
+            from sonar.agent.recipes.deep_analysis import make_analyzer
+
+            analyzer = lambda: make_analyzer(registry=registry, cache=cache)  # noqa: E731
+        return analyzer()
 
     @app.get("/api/health")
     def health() -> dict[str, str]:
@@ -82,6 +96,37 @@ def create_app(
             logger.info(
                 "chat[{}] ✓ {} text-delta, {:.1f}s", thread, deltas, time.perf_counter() - started
             )
+            yield events.sse(events.DONE, {})
+
+        return StreamingResponse(stream(), media_type="text/event-stream")
+
+    @app.get("/api/ohlcv/{ticker}")
+    def ohlcv(ticker: str, range: str = "6mo", interval: str = "1d") -> dict:
+        try:
+            return get_ohlcv(
+                ticker, range, interval,
+                registry=registry, cache=cache, ttl=config.OHLCV_TTL_SECONDS,
+            )
+        except UnknownSymbol:
+            raise HTTPException(status_code=404, detail=f"Sembol bulunamadı: {ticker.upper()}")
+
+    @app.post("/api/analyze")
+    async def analyze(req: AnalyzeRequest) -> StreamingResponse:
+        async def stream():
+            started = time.perf_counter()
+            logger.info("analiz[{}] başladı", req.ticker)
+            try:
+                async for etype, data in _get_analyzer()(req.ticker):
+                    if etype == events.ANALYSIS_STEP:
+                        logger.info("analiz[{}] {} {}", req.ticker, data["section"],
+                                    "✓" if data["ok"] else "✗")
+                    yield events.sse(etype, data)
+            except Exception as e:  # model/tool hatası → tek error event, sessiz düşme yok
+                from sonar.agent.model import explain
+
+                logger.exception("analiz[{}] akış çöktü", req.ticker)
+                yield events.sse(events.ERROR, {"message": explain(e)})
+            logger.info("analiz[{}] ✓ {:.1f}s", req.ticker, time.perf_counter() - started)
             yield events.sse(events.DONE, {})
 
         return StreamingResponse(stream(), media_type="text/event-stream")
