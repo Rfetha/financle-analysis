@@ -22,6 +22,28 @@ function SourceBanner() {
   );
 }
 
+function IngestBanner() {
+  const [state, setState] = useState<{ status: string; progress: number; quarter: string } | null>(null);
+  useEffect(() => {
+    const poll = () =>
+      fetch("/api/ingest/status")
+        .then((r) => r.json())
+        .then(setState)
+        .catch(() => {});
+    poll();
+    const id = setInterval(poll, 5000);
+    return () => clearInterval(id);
+  }, []);
+  if (!state || state.status === "ready" || state.status === "idle") return null;
+  const text =
+    state.status === "error"
+      ? "13F verisi indirilemedi — büyük oyuncular bölümü şu an yok."
+      : `13F verisi indiriliyor${state.quarter ? ` (${state.quarter})` : ""} — %${Math.round(state.progress * 100)}`;
+  return (
+    <div style={{ padding: "6px 20px", background: "#12261f", color: "#7ee787", fontSize: 13 }}>{text}</div>
+  );
+}
+
 export function App() {
   const [tab, setTab] = useState<"analysis" | "chat">("analysis");
   return (
@@ -43,6 +65,7 @@ export function App() {
         ))}
       </header>
       <SourceBanner />
+      <IngestBanner />
       <div style={{ flex: 1, overflowY: "auto" }}>{tab === "analysis" ? <Analysis /> : <Chat />}</div>
     </div>
   );

@@ -10,6 +10,7 @@ const SECTIONS = [
   { key: "technicals", label: "Teknik" },
   { key: "news", label: "Haber" },
   { key: "peers", label: "Rakipler" },
+  { key: "big_players", label: "Büyük oyuncular" },
 ];
 
 type SecStatus = "pending" | "done" | "failed";
