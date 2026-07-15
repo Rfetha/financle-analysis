@@ -6,6 +6,7 @@ işi taze veri.
 """
 
 import asyncio
+import os
 
 from loguru import logger
 
@@ -27,6 +28,23 @@ async def quote_stream(
 ):
     loop = asyncio.get_running_loop()
     plugin = registry.get(market)
+
+    key, secret = os.environ.get("SONAR_ALPACA_KEY"), os.environ.get("SONAR_ALPACA_SECRET")
+    if key and secret and limit is None:
+        # Why: WS gerçek push verir; polling yalnız key yokken (yfinance) ya da testte (limit) kullanılır.
+        from sonar.market.us.stream import AlpacaStream
+
+        prev_closes: dict[str, float] = {}
+        async for tick in AlpacaStream(key, secret).ticks([t.upper() for t in tickers]):
+            ticker = tick["ticker"]
+            if ticker not in prev_closes:
+                q = await loop.run_in_executor(None, plugin.get_quote, Symbol(ticker, market))
+                prev_closes[ticker] = float(q.previous_close.amount)
+            prev = prev_closes[ticker]
+            change = (float(tick["price"]) - prev) / prev * 100 if prev else 0.0
+            yield events.QUOTE_TICK, {**tick, "change_pct": round(change, 2), "source": "alpaca"}
+        return
+
     rounds = 0
     while limit is None or rounds < limit:
         for ticker in tickers:
