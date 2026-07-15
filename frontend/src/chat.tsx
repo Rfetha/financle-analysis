@@ -1,54 +1,21 @@
 import { useRef, useState } from "react";
-import type { CSSProperties } from "react";
-
-// Asistan turu = tipli "part" listesi (ADR-0008). M1: text · tool_call · tool_result · error.
-// M2'de quote-tick/chart part'ları buraya EKLENİR (yeniden yazma değil).
-type Part =
-  | { kind: "text"; text: string }
-  | { kind: "tool_call"; name: string; input: unknown; status: "running" | "done" }
-  | { kind: "tool_result"; name: string; output: string }
-  | { kind: "error"; message: string };
+import { MessagePart, type Part } from "./parts";
 
 type Message = { role: "user" | "assistant"; parts: Part[] };
 
-// part-type -> React component registry. AG-UI geçişinde (v2) yalnız yeni tipler eklenir.
-const REGISTRY: Record<Part["kind"], (p: Part) => JSX.Element> = {
-  text: (p) => <span style={{ whiteSpace: "pre-wrap" }}>{(p as any).text}</span>,
-  tool_call: (p) => {
-    const t = p as Extract<Part, { kind: "tool_call" }>;
-    return (
-      <div style={card}>
-        <span style={{ opacity: 0.7 }}>{t.status === "running" ? "⏳" : "✓"} tool</span>{" "}
-        <b>{t.name}</b>
-        <code style={codeStyle}>{JSON.stringify(t.input)}</code>
-      </div>
-    );
-  },
-  tool_result: (p) => {
-    const t = p as Extract<Part, { kind: "tool_result" }>;
-    return (
-      <div style={card}>
-        <span style={{ opacity: 0.7 }}>↳ {t.name}</span>
-        <code style={codeStyle}>{t.output}</code>
-      </div>
-    );
-  },
-  error: (p) => <span style={{ color: "#f87171" }}>{(p as any).message}</span>,
-};
-
-function MessagePart({ part }: { part: Part }) {
-  return REGISTRY[part.kind](part);
-}
-
 // Sonar SSE stream'ini part-güncellemelerine çevirir (fetch + ReadableStream, ADR-0008:
 // EventSource değil — abort/header kontrolü; yarım üretimi sessiz resume etmez).
-async function streamChat(message: string, onEvent: (type: string, data: any) => void) {
-  const resp = await fetch("/api/chat", {
+export async function streamSSE(
+  url: string,
+  body: unknown,
+  onEvent: (type: string, data: any) => void,
+) {
+  const resp = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ message }),
+    body: JSON.stringify(body),
   });
-  if (!resp.ok || !resp.body) throw new Error(`chat hata: ${resp.status}`);
+  if (!resp.ok || !resp.body) throw new Error(`istek hatası: ${resp.status}`);
   const reader = resp.body.getReader();
   const decoder = new TextDecoder();
   let buf = "";
@@ -93,7 +60,7 @@ export function Chat() {
     setBusy(true);
     setMessages((ms) => [...ms, { role: "user", parts: [{ kind: "text", text: msg }] }, { role: "assistant", parts: [] }]);
     try {
-      await streamChat(msg, (type, data) => {
+      await streamSSE("/api/chat", { message: msg }, (type, data) => {
         if (type === "text-delta") {
           patchLast((parts) => {
             const last = parts[parts.length - 1];
@@ -124,8 +91,7 @@ export function Chat() {
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100vh", background: "#0d1117", color: "#e6edf3" }}>
-      <header style={{ padding: "12px 20px", borderBottom: "1px solid #21262d", fontWeight: 600 }}>Sonar</header>
+    <div style={{ display: "flex", flexDirection: "column" }}>
       <div style={{ flex: 1, overflowY: "auto", padding: 20, maxWidth: 760, width: "100%", margin: "0 auto" }}>
         {messages.length === 0 && <p style={{ opacity: 0.5 }}>Bir hisse sor — ör. "AAPL fiyatı ne?"</p>}
         {messages.map((m, i) => (
@@ -164,6 +130,3 @@ export function Chat() {
     </div>
   );
 }
-
-const card: CSSProperties = { margin: "6px 0", padding: "6px 10px", borderRadius: 8, background: "#0d1117", border: "1px solid #21262d", fontSize: 13 };
-const codeStyle: CSSProperties = { display: "block", marginTop: 4, color: "#7ee787", fontSize: 12, wordBreak: "break-all" };
