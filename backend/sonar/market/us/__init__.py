@@ -21,6 +21,7 @@ from sonar.market.sources.http import HttpClient
 from sonar.market.us.edgar import EdgarClient
 from sonar.market.us.macro import USMacro
 from sonar.market.us.news import USNews
+from sonar.market.us.finra import FinraShort
 from sonar.market.us.prices import PriceSource, YFinancePrices
 
 
@@ -40,6 +41,7 @@ class USMarketPlugin(BaseMarketPlugin):
         news: USNews | None = None,
         global_macro: GlobalMacro | None = None,
         local_macro: USMacro | None = None,
+        finra: FinraShort | None = None,
     ) -> None:
         http = _default_http()
         fred = FredClient(http)
@@ -48,6 +50,7 @@ class USMarketPlugin(BaseMarketPlugin):
         self._news = news or USNews(http)
         self._global = global_macro or GlobalMacro(fred)
         self._local = local_macro or USMacro(fred)
+        self._finra = finra or FinraShort()
 
     def get_quote(self, symbol: Symbol) -> Quote:
         return self._prices.quote(symbol)
@@ -70,3 +73,9 @@ class USMarketPlugin(BaseMarketPlugin):
             local=self._local.snapshot(),
             provenance=Provenance("FRED", time.time()),
         )
+
+    def get_insider_trades(self, symbol: Symbol):
+        return self._edgar.insider_trades(symbol)
+
+    def get_short_interest(self, symbol: Symbol):
+        return self._finra.short_interest(symbol)
