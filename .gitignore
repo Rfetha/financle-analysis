@@ -25,6 +25,9 @@ backend/sonar/web/static/
 # SDD scratch (ledger/briefs)
 .superpowers/
 
+# Local env (secrets, key'ler) — .env.example commit'li, .env değil
+.env
+
 # OS
 .DS_Store
 Thumbs.db
