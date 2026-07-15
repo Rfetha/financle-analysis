@@ -8,6 +8,9 @@ def _load_dotenv(path: Path | None = None) -> None:
     python-dotenv yok (ponytail): KEY=VALUE · # yorum · tırnak sıyırma yeter. `.env` = kullanıcı
     key'leri (gitignored); kod sabitleri bu dosyada. M6 Settings UI bu .env'i yazacak → format bizde.
     """
+    # Testler kullanıcının gerçek .env key'lerini kullanmasın (izolasyon) — conftest set eder.
+    if path is None and os.environ.get("SONAR_SKIP_DOTENV"):
+        return
     env_path = path or Path(__file__).resolve().parents[2] / ".env"
     if not env_path.exists():
         return

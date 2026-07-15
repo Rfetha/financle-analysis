@@ -5,6 +5,8 @@ import pytest
 
 # Testlerde 13F arka plan ingestion'ı asla tetiklenmesin (ağ + startup task).
 os.environ.setdefault("SONAR_SKIP_INGEST", "1")
+# Testler kullanıcının gerçek .env key'lerini (Alpaca vb.) kullanmasın — izolasyon.
+os.environ.setdefault("SONAR_SKIP_DOTENV", "1")
 
 from sonar.store.db import connect
 
