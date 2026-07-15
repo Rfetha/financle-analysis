@@ -31,5 +31,8 @@ FUNDAMENTALS_TTL_SECONDS = 86400  # 24 sa — çeyreklik veri
 NEWS_TTL_SECONDS = 900
 MACRO_TTL_SECONDS = 21600         # 6 sa
 PEERS_TTL_SECONDS = 86400
+HOLDERS_TTL_SECONDS = 86400       # 24 sa — 13F çeyreklik
+INSIDERS_TTL_SECONDS = 21600      # 6 sa — Form 4 gün-içi
+SHORT_TTL_SECONDS = 43200         # 12 sa — short interest ayda 2x
 
 # Model seçimi model katmanında yaşar (sonar/agent/model.py) — burada kopyalanmaz.
