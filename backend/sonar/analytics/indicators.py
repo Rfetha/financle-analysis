@@ -107,3 +107,10 @@ def volume_anomaly(candles: list[Candle], window: int = 20) -> float:
     if baseline == 0:
         return 0.0
     return round(candles[-1].volume / baseline, 2)
+
+
+def days_to_cover(shares_short: int, avg_daily_volume: float) -> float | None:
+    """Açık short / ortalama günlük hacim — squeeze riskinin standart ölçüsü."""
+    if not avg_daily_volume:
+        return None
+    return round(shares_short / avg_daily_volume, 2)
