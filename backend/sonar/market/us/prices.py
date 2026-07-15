@@ -104,7 +104,10 @@ class AlpacaPrices:
         try:
             data = self._http.get_json(f"{ALPACA_DATA_URL}/{symbol.ticker}/snapshot")
         except httpx.HTTPStatusError as e:
-            if e.response.status_code in (404, 422):
+            # Why: Alpaca geçersiz/bilinmeyen sembole 400/404/422 döner (ör. boşluklu
+            # "SK HYNIX" → 400). Bunlar "sembol yok" demek → temiz UnknownSymbol.
+            # 401/403 (auth) ve 429 (rate) GERÇEK hata → propagate.
+            if e.response.status_code in (400, 404, 422):
                 raise UnknownSymbol(symbol.ticker) from e
             raise
         trade = data.get("latestTrade") or {}
@@ -133,7 +136,10 @@ class AlpacaPrices:
         try:
             data = self._http.get_json(url)
         except httpx.HTTPStatusError as e:
-            if e.response.status_code in (404, 422):
+            # Why: Alpaca geçersiz/bilinmeyen sembole 400/404/422 döner (ör. boşluklu
+            # "SK HYNIX" → 400). Bunlar "sembol yok" demek → temiz UnknownSymbol.
+            # 401/403 (auth) ve 429 (rate) GERÇEK hata → propagate.
+            if e.response.status_code in (400, 404, 422):
                 raise UnknownSymbol(symbol.ticker) from e
             raise
         bars = data.get("bars") or []

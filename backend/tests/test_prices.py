@@ -37,12 +37,26 @@ def test_make_price_source_with_key_uses_alpaca(monkeypatch):
     assert isinstance(make_price_source(), AlpacaPrices)
 
 
-def test_alpaca_quote_unknown_symbol_raises_domain_error():
-    transport = httpx.MockTransport(lambda r: httpx.Response(404))
+@pytest.mark.parametrize("status", [400, 404, 422])
+def test_alpaca_client_error_becomes_unknown_symbol(status):
+    # Why: Alpaca geçersiz sembole 400 (ör. boşluklu "SK HYNIX"), bilinmeyene 404/422 döner —
+    # üçü de temiz UnknownSymbol olmalı, ham HTTPStatusError→500 değil.
+    transport = httpx.MockTransport(lambda r: httpx.Response(status))
     http = HttpClient("Sonar/0.1 (t@e.com)", transport=transport, min_interval=0)
     src = AlpacaPrices(key="k", secret="s", http=http, now=lambda: 7.0)
     with pytest.raises(UnknownSymbol):
         src.quote(Symbol("ZZZZ", "US"))
+    with pytest.raises(UnknownSymbol):
+        src.bars(Symbol("ZZZZ", "US"), "6mo", "1d")
+
+
+def test_alpaca_auth_error_propagates_not_masked():
+    # 401/403/429/5xx UnknownSymbol'e ÇEVRİLMEZ — gerçek hata, sessizce "sembol yok" olmamalı.
+    transport = httpx.MockTransport(lambda r: httpx.Response(403))
+    http = HttpClient("Sonar/0.1 (t@e.com)", transport=transport, min_interval=0, retries=0)
+    src = AlpacaPrices(key="k", secret="s", http=http, now=lambda: 7.0)
+    with pytest.raises(httpx.HTTPStatusError):
+        src.quote(Symbol("AAPL", "US"))
 
 
 import os
