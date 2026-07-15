@@ -1,68 +1,71 @@
 # Next Session — Buradan devam et
 
-> Bir sonraki oturum için handoff. Tam bağlam: `CLAUDE.md` · `docs/ROADMAP.md` · `docs/adr/`.
+> Bir sonraki oturum için handoff. Tam bağlam: `CLAUDE.md` · `docs/ROADMAP.md` · `docs/adr/` ·
+> `docs/ARCHITECTURE.md`. Canlı task ilerlemesi: `.superpowers/sdd/progress.md` (gitignored).
 
-## Nerede kaldık (2026-07-13)
+## Nerede kaldık (2026-07-15)
 
-**M1 DoD kapandı. Provider mimarisi yeniden kuruldu: tek loop + local-first. PUSH'SUZ.**
+**M2 TAMAMLANDI — Faz A (Deep Analysis) + Faz B (Big Players). PUSH'LANDI, master'a MERGE EDİLMEDİ.**
 
-- `master` origin'in **7+ commit önünde** (push kimlik sorunu: repo `Rfetha/...`, gh `RfethaEgeist`
-  ile giriş yapmış → `gh auth login` ile kişisel hesaba geçmek gerek).
-- **31 test yeşil.**
+- Branch: `feat/m2-deep-analysis-big-players` — **48 commit**, origin'e push'lu (`Rfetha` hesabıyla; gh
+  aktif hesabı `Rfetha` olmalı — `RfethaEgeist` yazamıyor: `gh auth status` → değilse `gh auth login`).
+- **136 test yeşil** · slow **6 passed / 2 skipped** (Alpaca, `.env` izolasyonu) · frontend build+tsc temiz.
+- **Gerçek SEC verisiyle kanıtlandı:** 2 çeyrek 13F ingest → NVDA holders + Δ (5796 filer, 411 yeni /
+  290 çıkış, opsiyon ayrı). Parse→CUSIP→amendment→Δ tümü canlı veride çalıştı.
 
-### Mimari değişiklik (2026-07-13) — spec + ADR'ler güncel
-Claude Code SDK yolu **söküldü**. Gerekçe (ADR-0002'de tam metin): abonelik OAuth'u üçüncü-parti
-üründe yasak (Anthropic ToS, Şubat 2026 → Nisan'da uygulandı; ihlal = **kullanıcının** hesabı banlanır);
-ToS-uyumlu tek yol olan SDK ise uygulamayı dış bir binary'nin davranışına (versiyon kayması) ve
-sağlayıcının fatura politikasına bağlıyordu.
+### Ne eklendi (M2)
+- **Faz A:** Alpaca fiyat (Strategy, key yoksa yfinance) · EDGAR fundamentals+peers · FRED makro ·
+  elle teknikler (RSI/MACD/BB/… numpy) · RSS haber · DeepAnalysis recipe (paralel gather + tek LLM
+  synthesize) · `/api/analyze` · `/api/ohlcv` · `/api/stream/quotes` (+Alpaca WS) · Lightweight Charts +
+  analiz görünümü (ilerleme rayı + "yazıyor").
+- **Faz B:** 13F ingestion (amendment RESTATEMENT/NEW HOLDINGS + prune + özet trend) · Δ sınıflaması ·
+  Form 4 insider + cluster · FINRA short · arka plan ingest (startup lifespan + `/api/ingest/status`) ·
+  CusipMap (isim-eşleşmeli) · get_institutional_holders/filer_holdings · recipe **BÜYÜK OYUNCULAR** node ·
+  ReAct'e 10 tool · frontend big-players chip + ingest şeridi.
 
-**Yeni şekil:**
-- **Tek loop:** chat = LangGraph ReAct, provider ne olursa olsun (ADR-0007).
-- **Model katmanı** (`sonar/agent/model.py`): `SONAR_MODEL="<provider>:<model>"`
-  - `local:qwen3-14b` (**varsayılan**) → llama-server `http://localhost:8080/v1`, key yok
-  - `openrouter:<model>` → `OPENROUTER_API_KEY`
-  - `anthropic:` / `openai:` → ilgili key
-  - `SONAR_BASE_URL` ile Ollama/LM Studio/gateway'e yönlenir. Local ve OpenRouter aynı
-    OpenAI-uyumlu istemciden geçer (fark: `base_url`).
-- **Katman sınırı testli:** `tests/test_layering.py` — `api/ tools/ domain/ store/ market/` içinde
-  provider ithali (langchain/langgraph/openai/anthropic) yasak.
-- **Non-goal oldu:** MCP "harici beyin" kapısı · deepagents · finansa-FT beyin modeli.
-
-Spec: `docs/superpowers/specs/2026-07-13-model-layer-local-first-design.md`
-
-### Local model: ÖLÇÜLDÜ ve KİLİTLENDİ (2026-07-13)
-Qwen3 14B Q4 tool-calling kabul testi **5/5 geçti** → local varsayılan kesin. Motor **llama.cpp** (kilit).
-Kilit komut (ölçülmüş: 43.8 tok/s, 16k context, VRAM 10.6/12.2):
-```powershell
-cd C:\tools\llama
-.\llama-server.exe -m models\Qwen3-14B-Q4_K_M.gguf --jinja -fa on -c 16384 -ctk q8_0 -ctv q8_0 -ngl 99 --port 8080
-```
-Spekülatif decoding ölçüldü → kazanç yok, alınmadı. KV quant (q8_0) alındı → hız aynı, 2× context.
-Server ayakta değilse chat, komutu içeren açık `error` event'i döner (`model.explain`).
+### B0 spike kararı (gerçek veri)
+13F: 3.8M satır/çeyrek. CUSIP→ticker naive isim-eşleşmesi %56 AMA `NAMEOFISSUER` her satırda → gösterim
+CUSIP'e takılmaz → **bulk index** (curated değil). FIGI %12 (elendi). Ticker-çözülür satırlara filtre.
+Rapor: `docs/superpowers/plans/2026-07-13-13f-spike-raporu.md`.
 
 ## Hemen sıradaki iş (sen seç)
 
-- **M2 (Deep analiz)** — asıl değer. ROADMAP M2. Reçeteler döngü kullanmaz → provider'dan bağımsız;
-  sentez adımı için model katmanına `synthesize` portu doğacak.
-- **Managed launcher** (M6'dan öne çekilebilir) — GGUF indirme + llama-server spawn + Settings ekranı;
-  **detect-first**: endpoint'te sunucu varsa Sonar süreç başlatmaz (kullanıcının Ollama/LM Studio'suna
-  dokunmaz). Az bilen kullanıcı için "tek tık".
-- **UI design pass** — `impeccable:frontend-design`, TradingView-vari (memory: `ui-design-direction`).
-- **Push** — `master` → origin; kimlik düzeltmesi gerekiyor (repo `Rfetha/...`, gh `RfethaEgeist`).
+1. **Faz B final whole-branch review** — Faz A'da yapıldı (0 Critical, 4 Important düzeltildi); Faz B için
+   HENÜZ yapılmadı. Merge öncesi önerilir. (`superpowers:requesting-code-review`, en güçlü model.)
+2. **master'a merge** — review sonrası. `superpowers:finishing-a-development-branch`.
+3. **TAM M2 demosu** — aşağıdaki "Çalıştırma"; llama-server + app + 13F ingest → "NVDA" → Büyük Oyuncular.
+4. **UI design pass** — analiz görünümü + genel TradingView-vari cila (`impeccable:frontend-design`);
+   memory: `ui-design-direction`. Kullanıcı UX'i "tam OK değil, sonra" dedi.
+5. **M3** (Portföy/Watchlist) ya da **M6** (Settings UI — `.env`'i UI'dan yönet: model/Alpaca key).
 
-## Bilinen açıklar / notlar
-- **Chat artık key'siz çalışmıyor**: ya llama-server ayakta olacak ya OpenRouter key'i verilecek.
-  (Bilinçli bedel — ADR-0002.)
-- Chat-persistence tek-oturum (`MemorySaver`). Kalıcılık → `SqliteSaver` (aynı DB, ADR-0004).
-- `dist/sonar.exe` eski (M0 build). Kozmetik lint pass yapılmadı.
+## Bilinen açıklar / deferred (loglu, düşük risk)
+- **big_players alt-parça izolasyonu:** recipe'de holders+insiders+short tek lambda; insiders/short
+  patlarsa holders da kaybolur (rapor çökmez — `_run` yakalar). Her alt-parçayı ayrı sarmala.
+- **Alpaca canlı WS:** parser unit-test'li; canlı connect yolu suite'te skip (test `.env` izolasyonu) ve
+  mevcut UI'a bağlı değil (polling çalışır). Gerçek WS bir bug taşıyor olabilir — açık test-key'iyle bak.
+- **peers cold-scan ~20s** (gerçek EDGAR; tool 24s cache'ler) → hızlı yol Faz B SIC tablosuyla (ileride).
+- **Faz A final-review minor'ları:** MACD `_need` sınırı, RSI 0/0→100, dxy=Broad Dollar etiketi,
+  fresh-model-per-request, unencoded ticker (Yahoo URL). `.superpowers/sdd/review-FAZA-final-report.md`.
 
-## Çalıştırma / test
+## Çalıştırma / test / TAM demo
 ```bash
-cd backend && uv run pytest          # 31 passed
-cd backend && uv run pytest -m slow  # gerçek yfinance
-cd backend && uv run sonar           # uygulama (local model ya da OPENROUTER_API_KEY gerekir)
-cd frontend && npm run dev           # 2-process dev (/api → :8000 proxy)
+cd backend && uv run pytest              # 136 passed
+cd backend && uv run pytest -m slow      # gerçek EDGAR/FRED/yfinance/Form4 (Alpaca key varsa +2)
+
+# TAM M2 demosu:
+# 1) ayrı terminalde llama-server (kilit komut ADR/ARCHITECTURE'da):
+#    llama-server -m Qwen3-14B-Q4_K_M.gguf --jinja -fa on -c 16384 -ctk q8_0 -ctv q8_0 -ngl 99 --port 8080
+# 2) .env'e (opsiyonel) SONAR_ALPACA_KEY/SECRET — yoksa yfinance fallback + sarı şerit
+cd backend && uv run sonar               # startup'ta 13F otomatik iner (~2 dk); /api/ingest/status
+cd frontend && npm run dev               # 2-process dev (/api → :8000)
+# tarayıcı → Derin Analiz → "NVDA" → rapor + BÜYÜK OYUNCULAR (13F Δ + insider cluster + short)
 ```
 
+## Env / config
+- Kod sabitleri: `backend/sonar/config.py` (TTL'ler + `.env` loader). Kullanıcı key'leri: `.env`
+  (gitignored; şablon `.env.example`). `SONAR_SKIP_INGEST=1` 13F ingest'i kapatır (test/CI).
+- Model: `SONAR_MODEL` (varsayılan `local:qwen3-14b`). Fiyat: `SONAR_ALPACA_KEY/SECRET`.
+  EDGAR nezaketi: `SONAR_CONTACT`.
+
 ## Açık karar yok
-Sıra: local ölçümü → (launcher ya da bulut varsayılanı) → push → UI pass → M2.
+Sıra: (Faz B review) → merge → (UI pass ya da M3/M6).
