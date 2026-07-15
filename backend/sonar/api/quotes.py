@@ -37,11 +37,18 @@ async def quote_stream(
         prev_closes: dict[str, float] = {}
         async for tick in AlpacaStream(key, secret).ticks([t.upper() for t in tickers]):
             ticker = tick["ticker"]
-            if ticker not in prev_closes:
-                q = await loop.run_in_executor(None, plugin.get_quote, Symbol(ticker, market))
-                prev_closes[ticker] = float(q.previous_close.amount)
-            prev = prev_closes[ticker]
-            change = (float(tick["price"]) - prev) / prev * 100 if prev else 0.0
+            try:
+                if ticker not in prev_closes:
+                    q = await loop.run_in_executor(None, plugin.get_quote, Symbol(ticker, market))
+                    prev_closes[ticker] = float(q.previous_close.amount)
+                prev = prev_closes[ticker]
+                change = (float(tick["price"]) - prev) / prev * 100 if prev else 0.0
+            except (UnknownSymbol, Unsupported) as e:
+                logger.info("quote-stream(ws): {} atlandı ({})", ticker, e)
+                continue
+            except Exception as e:  # noqa: BLE001 — tek tick'in hatası akışı düşürmesin
+                logger.warning("quote-stream(ws): {} hata ({})", ticker, e)
+                continue
             yield events.QUOTE_TICK, {**tick, "change_pct": round(change, 2), "source": "alpaca"}
         return
 

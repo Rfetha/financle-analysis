@@ -144,6 +144,10 @@ def create_app(
                     yield events.sse(etype, data)
             except asyncio.CancelledError:
                 raise  # Why: istemci bağlantıyı kapattı — yutma, propagate et (CLAUDE.md §5)
+            except Exception as e:  # model/tool hatası → tek error event, sessiz düşme yok
+                logger.exception("quote-stream akış çöktü")
+                yield events.sse(events.ERROR, {"message": str(e)})
+            yield events.sse(events.DONE, {})
 
         return StreamingResponse(stream(), media_type="text/event-stream")
 
