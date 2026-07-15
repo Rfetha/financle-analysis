@@ -153,8 +153,13 @@ class EdgarClient:
         for form, acc, doc in zip(forms, accessions, docs):
             if form != "4" or len(out) >= limit:
                 continue
+            # Why: Form 4'te primaryDocument çoğunlukla XSL-render edilmiş HTML görünüm
+            # yoluna işaret eder (ör. "xslF345X06/wk-form4_....xml") — ".xml" uzantısına
+            # rağmen dönen içerik HTML'dir. Ham ownershipDocument XML'i her zaman accession
+            # kökünde aynı dosya adıyla (klasör öneki olmadan) durur.
+            doc_name = doc.rsplit("/", 1)[-1]
             xml = self._http.get_text(
-                ARCHIVE_URL.format(cik=int(cik), acc_nodash=acc.replace("-", ""), doc=doc)
+                ARCHIVE_URL.format(cik=int(cik), acc_nodash=acc.replace("-", ""), doc=doc_name)
             )
             out.extend(_parse_form4(ElementTree.fromstring(xml)))
         return out
