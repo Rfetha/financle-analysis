@@ -2497,7 +2497,7 @@ git commit -m "feat: DeepAnalysis recipe — paralel gather (LLM yok) + tek cagr
 
 ---
 
-### Task A12: API — `POST /api/analyze` (SSE) + `GET /api/ohlcv`
+### Task A12: API — `POST /api/analyze` (SSE) + `GET /api/ohlcv`  — ✅ DONE
 
 **Files:**
 - Modify: `backend/sonar/api/app.py`
@@ -2507,7 +2507,7 @@ git commit -m "feat: DeepAnalysis recipe — paralel gather (LLM yok) + tek cagr
 - Consumes: `make_analyzer` (A11), `get_ohlcv` (A4)
 - Produces: `POST /api/analyze {ticker}` → SSE · `GET /api/ohlcv/{ticker}?range=&interval=` → JSON
 
-- [ ] **Step 1: Failing test**
+- [x] **Step 1: Failing test**
 
 `backend/tests/test_api_analyze.py`:
 ```python
@@ -2560,12 +2560,12 @@ def test_analyze_streams_steps_and_done(conn):
     assert body.rstrip().endswith("event: done\ndata: {}")
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `cd backend && uv run pytest tests/test_api_analyze.py -v`
 Expected: FAIL — `TypeError: create_app() got an unexpected keyword argument 'analyzer'`
 
-- [ ] **Step 3: `api/app.py` — iki uç ekle**
+- [x] **Step 3: `api/app.py` — iki uç ekle**
 
 `ChatRequest`'in yanına:
 ```python
@@ -2630,12 +2630,12 @@ def create_app(
 
 `from sonar.tools.ohlcv import get_ohlcv` import'unu dosyanın başına ekle.
 
-- [ ] **Step 4: Run tests**
+- [x] **Step 4: Run tests**
 
 Run: `cd backend && uv run pytest -q`
 Expected: 70 passed
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add backend/
@@ -2644,7 +2644,7 @@ git commit -m "feat: POST /api/analyze (SSE) + GET /api/ohlcv"
 
 ---
 
-### Task A13: `GET /api/stream/quotes` — canlı fiyat SSE (polling)
+### Task A13: `GET /api/stream/quotes` — canlı fiyat SSE (polling)  — ✅ DONE
 
 Alpaca WebSocket Task A14'te gelir; bu task **her iki kaynak için de çalışan** polling'i kurar ve
 `quote-tick` sözleşmesini sabitler. Frontend hangi yolun kullanıldığını bilmez.
@@ -2658,7 +2658,7 @@ Alpaca WebSocket Task A14'te gelir; bu task **her iki kaynak için de çalışan
 - Produces: `quote_stream(tickers, *, registry, cache, interval, limit) -> AsyncIterator[tuple[str, dict]]` ·
   `GET /api/stream/quotes?tickers=NVDA,AAPL`
 
-- [ ] **Step 1: Failing test**
+- [x] **Step 1: Failing test**
 
 `backend/tests/test_api_quotes_stream.py`:
 ```python
@@ -2715,12 +2715,12 @@ async def test_unknown_ticker_does_not_kill_stream(conn):
     assert [t["ticker"] for t in ticks] == ["NVDA"]  # bilinmeyen atlanır, akış sürer
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `cd backend && uv run pytest tests/test_api_quotes_stream.py -v`
 Expected: FAIL — `ModuleNotFoundError: sonar.api.quotes`
 
-- [ ] **Step 3: `api/quotes.py`**
+- [x] **Step 3: `api/quotes.py`**
 
 ```python
 """Canlı fiyat akışı. Çıktı sözleşmesi: quote-tick.
@@ -2776,7 +2776,7 @@ async def quote_stream(
             await asyncio.sleep(interval)
 ```
 
-- [ ] **Step 4: `api/app.py` — uç**
+- [x] **Step 4: `api/app.py` — uç**
 
 ```python
     @app.get("/api/stream/quotes")
@@ -2796,12 +2796,12 @@ async def quote_stream(
 ```
 Dosyanın başına `import asyncio` ekle.
 
-- [ ] **Step 5: Run tests**
+- [x] **Step 5: Run tests**
 
 Run: `cd backend && uv run pytest -q`
 Expected: 72 passed
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add backend/
@@ -2810,7 +2810,7 @@ git commit -m "feat: GET /api/stream/quotes — canli fiyat SSE (polling), quote
 
 ---
 
-### Task A14: Alpaca WebSocket — aynı `quote-tick`, gerçek push
+### Task A14: Alpaca WebSocket — aynı `quote-tick`, gerçek push  — ✅ DONE
 
 Yalnız Alpaca key'i varsa devreye girer. Aynı event, farklı taşıma → frontend değişmez.
 
@@ -2823,7 +2823,7 @@ Yalnız Alpaca key'i varsa devreye girer. Aynı event, farklı taşıma → fron
 - Produces: `AlpacaStream(key, secret).ticks(tickers) -> AsyncIterator[dict{ticker, price, ts}]` ·
   `quote_stream(...)` key varsa WS'e, yoksa polling'e düşer
 
-- [ ] **Step 1: Failing test — WS mesajı → tick**
+- [x] **Step 1: Failing test — WS mesajı → tick**
 
 `backend/tests/test_alpaca_stream.py`:
 ```python
@@ -2855,12 +2855,12 @@ async def test_real_stream_first_tick():
 > `skipif_no_alpaca_key` yok — bunun yerine `@pytest.mark.skipif(not os.environ.get("SONAR_ALPACA_KEY"), reason="Alpaca key yok")`
 > kullan (A3'teki desenin aynısı). Yukarıdaki satırı o hale getir.
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `cd backend && uv run pytest tests/test_alpaca_stream.py -v`
 Expected: FAIL — `ModuleNotFoundError: sonar.market.us.stream`
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `backend/sonar/market/us/stream.py`:
 ```python
@@ -2898,7 +2898,7 @@ class AlpacaStream:
                     yield tick
 ```
 
-- [ ] **Step 4: `api/quotes.py` — key varsa WS'e düş**
+- [x] **Step 4: `api/quotes.py` — key varsa WS'e düş**
 
 `quote_stream`'in başına:
 ```python
@@ -2922,12 +2922,12 @@ class AlpacaStream:
 ```
 (`loop` ve `plugin` tanımlarını bu bloğun **üstüne** taşı.)
 
-- [ ] **Step 5: Run tests**
+- [x] **Step 5: Run tests**
 
 Run: `cd backend && uv run pytest -q`
 Expected: 74 passed
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add backend/
@@ -3073,7 +3073,7 @@ git commit -m "feat: 7 deep tool ReAct chat agent'ina acildi (recipe ile ayni to
 
 ---
 
-### Task A16: Frontend — Lightweight Charts + analiz görünümü + kaynak şeridi
+### Task A16: Frontend — Lightweight Charts + analiz görünümü + kaynak şeridi  — ✅ DONE
 
 **Files:**
 - Create: `frontend/src/chart.tsx`, `frontend/src/analysis.tsx`, `frontend/src/parts.tsx`
@@ -3084,13 +3084,13 @@ git commit -m "feat: 7 deep tool ReAct chat agent'ina acildi (recipe ile ayni to
 - Consumes: `POST /api/analyze` (A12), `GET /api/ohlcv` (A12)
 - Produces: `<Chart ticker range />` · `<Analysis />` · `Part` tipi genişler: `chart` · `analysis_step`
 
-- [ ] **Step 1: Bağımlılık**
+- [x] **Step 1: Bağımlılık**
 
 ```bash
 cd frontend && npm install lightweight-charts@^4.2.0
 ```
 
-- [ ] **Step 2: `frontend/src/chart.tsx`**
+- [x] **Step 2: `frontend/src/chart.tsx`**
 
 ```tsx
 import { useEffect, useRef } from "react";
@@ -3140,7 +3140,7 @@ export function Chart({ ticker, range = "6mo", interval = "1d" }: {
 }
 ```
 
-- [ ] **Step 3: `frontend/src/parts.tsx` — registry ortağa çıkar**
+- [x] **Step 3: `frontend/src/parts.tsx` — registry ortağa çıkar**
 
 `chat.tsx` içindeki `Part` tipi ve `REGISTRY` bu dosyaya taşınır; `chart` ve `analysis_step` eklenir:
 
@@ -3214,7 +3214,7 @@ export function MessagePart({ part }: { part: Part }) {
 `chat.tsx`'ten `Part`/`REGISTRY`/`MessagePart`/`card`/`codeStyle` tanımlarını **sil**, yerine
 `import { MessagePart, type Part } from "./parts";` koy.
 
-- [ ] **Step 4: `frontend/src/analysis.tsx`**
+- [x] **Step 4: `frontend/src/analysis.tsx`**
 
 ```tsx
 import { useState } from "react";
@@ -3284,7 +3284,7 @@ export function Analysis() {
 }
 ```
 
-- [ ] **Step 5: `chat.tsx` — SSE okuyucusunu dışa aç ve tekrarı kaldır**
+- [x] **Step 5: `chat.tsx` — SSE okuyucusunu dışa aç ve tekrarı kaldır**
 
 `streamChat` fonksiyonunu genelleştir ve **export** et:
 ```tsx
@@ -3324,7 +3324,7 @@ export async function streamSSE(
 `Chat` içindeki `streamChat(msg, cb)` çağrısını `streamSSE("/api/chat", { message: msg }, cb)` yap;
 eski `streamChat` tanımını **sil**.
 
-- [ ] **Step 6: `App.tsx` — iki sekme + kaynak şeridi**
+- [x] **Step 6: `App.tsx` — iki sekme + kaynak şeridi**
 
 ```tsx
 import { useEffect, useState } from "react";
@@ -3380,7 +3380,7 @@ export function App() {
 `Chat` bileşeninin en dış `div`'indeki `height: "100vh"` ve `background` stillerini **kaldır**
 (artık `App` sarmalıyor); `header`'ını da sil.
 
-- [ ] **Step 7: Build ve elle doğrula**
+- [x] **Step 7: Build ve elle doğrula**
 
 ```bash
 cd frontend && npm run build
@@ -3396,7 +3396,7 @@ Tarayıcı → "Derin Analiz" → `NVDA` → Enter. Görülmesi gereken:
 2. Mum grafiği çizilir
 3. Rapor token-token akar; Makro→Mikro→Teknik→Haber→Sentez sırasıyla
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add frontend/
@@ -3405,18 +3405,18 @@ git commit -m "feat: Lightweight Charts + derin analiz gorunumu + part registry 
 
 ---
 
-## 🚦 MERGE KAPISI — Faz A DoD
+## 🚦 MERGE KAPISI — Faz A DoD  — ✅ GEÇİLDİ (87 test + slow yeşil, canlı smoke ok; LLM sentezi = manuel kabul)
 
 Faz B'ye geçmeden **hepsi yeşil olmalı**:
 
-- [ ] `cd backend && uv run pytest -q` → **75+ passed**, 0 failed
-- [ ] `cd backend && uv run pytest -m slow -q` → gerçek EDGAR/FRED/(Alpaca) çağrıları geçiyor
-- [ ] `uv run sonar` → tarayıcıda `NVDA` → **top-down rapor + Lightweight Chart** (spec DoD)
-- [ ] Rapordaki her sayı bir tool çıktısında **birebir** bulunabiliyor (LLM aritmetik yapmadı)
-- [ ] Alpaca key'i **olmadan** da çalışıyor; kaynak şeridi görünüyor
-- [ ] Bir kaynağı kasten bozunca (ör. EDGAR URL'ini boz) rapor **düşmüyor** — bölüm "veri yok" diyor
-- [ ] `test_layering.py` yeşil (analytics/market/sources provider ithal etmiyor)
-- [ ] `git log --oneline` → yapısal (refactor) ve davranışsal (feat) commit'ler ayrı
+- [x] `cd backend && uv run pytest -q` → **75+ passed**, 0 failed
+- [x] `cd backend && uv run pytest -m slow -q` → gerçek EDGAR/FRED/(Alpaca) çağrıları geçiyor
+- [x] `uv run sonar` → tarayıcıda `NVDA` → **top-down rapor + Lightweight Chart** (spec DoD)
+- [x] Rapordaki her sayı bir tool çıktısında **birebir** bulunabiliyor (LLM aritmetik yapmadı)
+- [x] Alpaca key'i **olmadan** da çalışıyor; kaynak şeridi görünüyor
+- [x] Bir kaynağı kasten bozunca (ör. EDGAR URL'ini boz) rapor **düşmüyor** — bölüm "veri yok" diyor
+- [x] `test_layering.py` yeşil (analytics/market/sources provider ithal etmiyor)
+- [x] `git log --oneline` → yapısal (refactor) ve davranışsal (feat) commit'ler ayrı
 
 Kapı geçilince: `docs/ROADMAP.md`'de M2 satırına "Faz A ✅" notu düş, commit'le.
 
