@@ -1,4 +1,7 @@
 from sonar.agent.tools import make_quote_tool, make_tools
+from sonar.domain.candle import Candle, OhlcvSeries
+from sonar.domain.quote import Provenance
+from sonar.market.base import BaseMarketPlugin
 from sonar.market.registry import MarketRegistry
 from sonar.market.us import USMarketPlugin
 from sonar.market.us.prices import YFinancePrices
@@ -37,3 +40,24 @@ def test_make_tools_exposes_seven_deep_tools(conn):
         "get_stock_quote", "get_price_history", "get_technical_indicators",
         "get_company_fundamentals", "get_stock_news", "get_macro_snapshot", "get_sector_peers",
     }
+
+
+class TooShortMarket(BaseMarketPlugin):
+    """RSI için 15 mum gerekir — 5 döner, analytics.indicators ValueError fırlatır."""
+
+    market = "US"
+
+    def get_ohlcv(self, symbol, range_, interval):
+        candles = [
+            Candle(ts=i, open=100 + i, high=101 + i, low=99 + i, close=100 + i, volume=1000)
+            for i in range(5)
+        ]
+        return OhlcvSeries(symbol, interval, candles, Provenance("fake", 1.0))
+
+
+def test_technical_indicators_tool_returns_error_dict_on_insufficient_data(conn):
+    reg = MarketRegistry()
+    reg.register(TooShortMarket())
+    tools = {t.name: t for t in make_tools(registry=reg, cache=Cache(conn))}
+    out = tools["get_technical_indicators"].invoke({"ticker": "NVDA"})
+    assert "error" in out

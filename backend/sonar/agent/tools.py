@@ -41,6 +41,8 @@ def make_tools(*, registry: MarketRegistry, cache: Cache) -> list:
             return {"error": f"Bilinmeyen sembol: {e}"}
         except Unsupported as e:
             return {"error": f"Bu market bunu vermiyor: {e}"}
+        except ValueError as e:
+            return {"error": f"Hesaplanamadı: {e}"}
 
     @tool
     def get_price_history(ticker: str, range: str = "6mo", interval: str = "1d") -> dict:

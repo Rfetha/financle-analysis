@@ -16,6 +16,7 @@ from typing import Callable
 from loguru import logger
 
 from sonar.agent import events
+from sonar.agent.events import _text_of
 from sonar.market.base import Unsupported
 from sonar.tools.fundamentals import get_fundamentals
 from sonar.tools.macro import get_macro_snapshot
@@ -106,7 +107,7 @@ def make_analyzer(*, registry, cache, model_factory: Callable | None = None):
             ticker=ticker.upper(), data=json.dumps(data, ensure_ascii=False, indent=2)
         )
         async for chunk in model.astream(prompt):
-            text = getattr(chunk, "content", "")
+            text = _text_of(getattr(chunk, "content", ""))
             if text:
                 yield events.TEXT_DELTA, {"delta": text}
 

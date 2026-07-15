@@ -71,3 +71,18 @@ async def test_analyzer_streams_steps_chart_then_text(conn):
     assert types[-1] == events.TEXT_DELTA
     text = "".join(d["delta"] for t, d in seen if t == events.TEXT_DELTA)
     assert text == "Makro olumlu."
+
+
+@pytest.mark.asyncio
+async def test_analyzer_handles_anthropic_content_block_list(conn):
+    """Anthropic streaming chunk.content bir blok listesi olabilir (str değil) — I2."""
+
+    class FakeModel:
+        async def astream(self, prompt):
+            yield type("C", (), {"content": [{"type": "text", "text": "Makro "}]})()
+            yield type("C", (), {"content": [{"type": "text", "text": "olumlu."}]})()
+
+    analyze = make_analyzer(**_ctx(conn), model_factory=lambda: FakeModel())
+    seen = [(etype, data) async for etype, data in analyze("NVDA")]
+    text = "".join(d["delta"] for t, d in seen if t == events.TEXT_DELTA)
+    assert text == "Makro olumlu."
