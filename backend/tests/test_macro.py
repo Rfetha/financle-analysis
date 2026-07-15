@@ -56,6 +56,12 @@ def test_us_snapshot_computes_curve_and_cpi_yoy():
     assert local.cpi_yoy == pytest.approx(5.0)        # 315 vs 300, yıllık
 
 
+def test_us_snapshot_cpi_yoy_none_without_near_year_ago_observation():
+    csv = {**CSVS, "CPIAUCSL": "observation_date,CPIAUCSL\n2020-01-15,250.0\n2026-07-13,315.0\n"}
+    local = USMacro(_fred(csv)).snapshot()
+    assert local.cpi_yoy is None  # en yakın gözlem ~6.5 yıl uzakta, pencere dışı
+
+
 @pytest.mark.slow
 def test_real_fred_returns_vix():
     from sonar.market.us import _default_http

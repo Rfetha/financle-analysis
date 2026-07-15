@@ -1,4 +1,5 @@
 import httpx
+import pytest
 from sonar.domain.symbol import Symbol
 from sonar.market.sources.http import HttpClient
 from sonar.market.sources.rss import parse_rss
@@ -41,3 +42,13 @@ def test_us_news_fetches_and_sorts_newest_first():
     )
     items = USNews(http).for_symbol(Symbol("NVDA", "US"))
     assert [i.title for i in items][:1] == ["NVIDIA beats estimates"]
+
+
+@pytest.mark.slow
+def test_real_yahoo_news_returns_items_or_empty():
+    from sonar.market.us import _default_http
+
+    items = USNews(_default_http()).for_symbol(Symbol("AAPL", "US"))
+    assert isinstance(items, list)  # boş de olabilir, ama crash olmamalı
+    for item in items:
+        assert item.title and item.url and item.source
