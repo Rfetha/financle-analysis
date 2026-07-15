@@ -3424,7 +3424,7 @@ Kapı geçilince: `docs/ROADMAP.md`'de M2 satırına "Faz A ✅" notu düş, com
 
 # FAZ B — Big Players
 
-### Task B0: SPIKE — ölç, sonra kur (kod yazılmaz)
+### Task B0: SPIKE — ölç, sonra kur (kod yazılmaz)  — ✅ DONE
 
 13F'in üç bilinmeyeni var ve **hiçbiri tahminle geçilemez**. Bu task kod üretmez, **rapor** üretir.
 
@@ -3432,7 +3432,7 @@ Kapı geçilince: `docs/ROADMAP.md`'de M2 satırına "Faz A ✅" notu düş, com
 - Create: `docs/superpowers/plans/2026-07-13-13f-spike-raporu.md`
 - Scratch: `C:\Users\Ferha\AppData\Local\Temp\claude\...\scratchpad\` (indirilen dosyalar buraya, repoya değil)
 
-- [ ] **Step 1: Bir çeyreklik 13F veri setini indir ve ölç**
+- [x] **Step 1: Bir çeyreklik 13F veri setini indir ve ölç**
 
 ```bash
 # DERA 13F yapılandırılmış veri seti (çeyreklik)
@@ -3448,7 +3448,7 @@ du -sh 13f/
 > URL 404 verirse: https://www.sec.gov/data-research/sec-markets-data/form-13f-data-sets
 > sayfasından **en güncel çeyreğin** gerçek linkini al ve rapora yaz.
 
-- [ ] **Step 2: SQLite'a yükle, süre ve boyut ölç — filtreli VE filtresiz**
+- [x] **Step 2: SQLite'a yükle, süre ve boyut ölç — filtreli VE filtresiz**
 
 Scratchpad'de tek seferlik script (repoya girmez):
 ```python
@@ -3476,7 +3476,7 @@ python load.py && ls -la 13f_test.db
 ```
 **Kaydet:** satır sayısı · yükleme süresi · **DB boyutu (MB)**.
 
-- [ ] **Step 3: CUSIP→ticker eşleşme oranını ölç (İKİ yol birlikte)**
+- [x] **Step 3: CUSIP→ticker eşleşme oranını ölç (İKİ yol birlikte)**
 
 ```bash
 # (i) SEC fails-to-deliver — CUSIP + SYMBOL birlikte
@@ -3497,13 +3497,13 @@ curl -A "Sonar/0.1 (ferhat.ersoy@egeist.com.tr)" -o tickers.json \
 **Kaydet:** distinct CUSIP sayısı · FTD ile eşleşen % · FTD+isim ile eşleşen % · **NVDA'nın CUSIP'i
 bulunuyor mu** (67066G104).
 
-- [ ] **Step 4: Δ'yı elle doğrula**
+- [x] **Step 4: Δ'yı elle doğrula**
 
 İki çeyreği (2025q4 + 2026q1) yükle, NVDA'nın CUSIP'i için bir filer seç ve Δ'yı hesapla.
 **Aynı sayıyı** EDGAR'ın kendi arayüzünde (o filer'ın 13F-HR belgesinde) veya WhaleWisdom/Dataroma'da
 **gözle doğrula**. Eşleşmiyorsa neden? (amendment mi, birim mi, hisse-bölünmesi mi?)
 
-- [ ] **Step 5: Amendment tiplerini say**
+- [x] **Step 5: Amendment tiplerini say**
 
 ```bash
 cut -f<AMENDMENT_TYPE sütunu> 13f/COVERPAGE.tsv | sort | uniq -c
@@ -3511,12 +3511,12 @@ cut -f<AMENDMENT_TYPE sütunu> 13f/COVERPAGE.tsv | sort | uniq -c
 **Kaydet:** `RESTATEMENT` ve `NEW HOLDINGS` kaç tane? (Sıfırsa bile kural yazılacak — bir sonraki
 çeyrek gelir.)
 
-- [ ] **Step 6: SEC 13f-2 / Form SHO toplulaştırılmış short verisi yayında mı?**
+- [x] **Step 6: SEC 13f-2 / Form SHO toplulaştırılmış short verisi yayında mı?**
 
 https://www.sec.gov/data-research adresinde ara. Yayındaysa: format, sıklık, gecikme.
 **Kaydet:** var/yok + varsa URL.
 
-- [ ] **Step 7: FINRA short interest endpoint'i key'siz mi?**
+- [x] **Step 7: FINRA short interest endpoint'i key'siz mi?**
 
 ```bash
 curl -sI "https://cdn.finra.org/equity/otcmarket/biweekly/" | head -3
@@ -3525,7 +3525,7 @@ FINRA'nın ücretsiz-key'siz dosya yolu bulunamazsa **yedek plan**: yfinance `.i
 `sharesShort`, `shortRatio` (ikinci-el; Provenance "Yahoo (ikinci-el)" der).
 **Kaydet:** hangi yol çalışıyor.
 
-- [ ] **Step 8: Raporu yaz ve KARAR AL**
+- [x] **Step 8: Raporu yaz ve KARAR AL**
 
 `docs/superpowers/plans/2026-07-13-13f-spike-raporu.md`:
 ```markdown
@@ -3552,7 +3552,7 @@ FINRA'nın ücretsiz-key'siz dosya yolu bulunamazsa **yedek plan**: yfinance `.i
 3. **Sürpriz/uyarı:** …
 ```
 
-- [ ] **Step 9: Commit + KULLANICI ONAYI**
+- [x] **Step 9: Commit + KULLANICI ONAYI**
 
 ```bash
 git add docs/superpowers/plans/2026-07-13-13f-spike-raporu.md
@@ -3564,7 +3564,7 @@ git commit -m "spike: 13F veri seti olculdu — yol karari + acik karar (filtrel
 
 ---
 
-### Task B1: 13F ingestion — DERA veri seti → SQLite
+### Task B1: 13F ingestion — DERA veri seti → SQLite  — ✅ DONE
 
 > **Ön koşul:** B0 raporu onaylandı, yol = **toplu indeks**. Küratörlü yola düşüldüyse bu task'ın
 > Step 3'ü değişir (ZIP yerine ~50 CIK'in filing'leri tek tek çekilir); şema ve geri kalanı aynıdır.
@@ -3579,7 +3579,7 @@ git commit -m "spike: 13F veri seti olculdu — yol karari + acik karar (filtrel
   `.filer_holdings(cik, quarter)` · `.quarters() -> list[str]` · `.prune(keep=2)` ·
   `parse_13f_zip(data: bytes) -> Iterator[Row]` · `CusipMap.ticker_for(cusip) -> str | None`
 
-- [ ] **Step 1: Failing test — amendment kuralı ve prune**
+- [x] **Step 1: Failing test — amendment kuralı ve prune**
 
 `backend/tests/test_holdings_repo.py`:
 ```python
@@ -3632,12 +3632,12 @@ def test_holders_of_returns_filer_name_and_put_call(conn):
     assert holders[0].filer_name == "ACME CAP"
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `cd backend && uv run pytest tests/test_holdings_repo.py -v`
 Expected: FAIL — `ModuleNotFoundError: sonar.store.holdings_repo`
 
-- [ ] **Step 3: `store/db.py` — şema**
+- [x] **Step 3: `store/db.py` — şema**
 
 `_SCHEMA`'ya ekle:
 ```sql
@@ -3671,7 +3671,7 @@ CREATE TABLE IF NOT EXISTS cusip_ticker (
 CREATE INDEX IF NOT EXISTS idx_cusip_ticker_ticker ON cusip_ticker(ticker);
 ```
 
-- [ ] **Step 4: `store/holdings_repo.py`**
+- [x] **Step 4: `store/holdings_repo.py`**
 
 ```python
 """13F pozisyon deposu. Ham veri son N çeyrek; trend için özet satırı kalıcı (spec §7).
@@ -3794,7 +3794,7 @@ class HoldingsRepo:
             self._conn.commit()
 ```
 
-- [ ] **Step 5: `market/us/thirteen_f.py` — ZIP parse + CUSIP haritası**
+- [x] **Step 5: `market/us/thirteen_f.py` — ZIP parse + CUSIP haritası**
 
 ```python
 """DERA 13F veri seti → Row akışı. Kaynak formatı burada biter; store domain görür."""
@@ -3841,12 +3841,12 @@ def _table(z: zipfile.ZipFile, name: str) -> list[dict]:
 > **B0 raporuna göre sütun adlarını doğrula.** DERA şeması çeyrekler arası ufak değişebilir; spike'ta
 > gördüğün gerçek başlıkları kullan (yukarıdakiler tahmin değil, ölçümden gelmeli).
 
-- [ ] **Step 6: Run tests**
+- [x] **Step 6: Run tests**
 
 Run: `cd backend && uv run pytest tests/test_holdings_repo.py -v`
 Expected: 4 passed
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add backend/
@@ -3855,7 +3855,7 @@ git commit -m "feat: 13F deposu — amendment kurali (RESTATEMENT/NEW HOLDINGS) 
 
 ---
 
-### Task B2: Arka planda ingestion + `GET /api/ingest/status`
+### Task B2: Arka planda ingestion + `GET /api/ingest/status`  — ✅ DONE
 
 Uygulama açılışında (spec §7: **2-b**) arka planda indirir; **sessiz değil** — durum uçtan görünür.
 Faz A bundan **bağımsız** çalışır.
@@ -3869,7 +3869,7 @@ Faz A bundan **bağımsız** çalışır.
 - Produces: `IngestState` (`idle|running|ready|error`, `progress`, `quarter`, `message`) ·
   `Ingester(repo, fetch).run_async()` · `GET /api/ingest/status`
 
-- [ ] **Step 1: Failing test**
+- [x] **Step 1: Failing test**
 
 `backend/tests/test_ingest.py`:
 ```python
@@ -3904,12 +3904,12 @@ async def test_ingest_error_is_visible_not_silent(conn):
     assert "SEC 503" in ing.state.message  # sessiz düşme yok
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `cd backend && uv run pytest tests/test_ingest.py -v`
 Expected: FAIL — `ModuleNotFoundError: sonar.store.ingest`
 
-- [ ] **Step 3: `store/ingest.py`**
+- [x] **Step 3: `store/ingest.py`**
 
 ```python
 """13F ingestion — uygulama açılışında arka planda. Durum GÖRÜNÜR (spec §7: sessiz indirme yok)."""
@@ -3982,7 +3982,7 @@ class Ingester:
             self.state.message = f"{type(e).__name__}: {e}"
 ```
 
-- [ ] **Step 4: `api/app.py` — startup task + status ucu**
+- [x] **Step 4: `api/app.py` — startup task + status ucu**
 
 ```python
     ingester = None
@@ -4027,7 +4027,7 @@ class Ingester:
 > **asyncio.create_task referansı:** görev nesnesini bir set'te tut (`_tasks.add(task)`), yoksa GC
 > görevi ortadan kaldırabilir (Python gotcha).
 
-- [ ] **Step 5: `pyproject.toml` — testlerde ingestion kapalı**
+- [x] **Step 5: `pyproject.toml` — testlerde ingestion kapalı**
 
 `[tool.pytest.ini_options]` içine:
 ```toml
@@ -4036,12 +4036,12 @@ env = ["SONAR_SKIP_INGEST=1"]
 (`pytest-env` gerekiyorsa `dev` grubuna ekle; alternatif: `conftest.py`'de
 `os.environ.setdefault("SONAR_SKIP_INGEST", "1")` — **bunu tercih et**, yeni bağımlılık yok.)
 
-- [ ] **Step 6: Run tests**
+- [x] **Step 6: Run tests**
 
 Run: `cd backend && uv run pytest -q`
 Expected: 81 passed
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add backend/
@@ -4050,7 +4050,7 @@ git commit -m "feat: 13F arka plan ingestion + GET /api/ingest/status (sessiz in
 
 ---
 
-### Task B3: `analytics/holdings.py` — Δ sınıflaması + sahiplik trendi
+### Task B3: `analytics/holdings.py` — Δ sınıflaması + sahiplik trendi  — ✅ DONE
 
 Saf matematik. Plugin'de değil çekirdekte — her market için aynı.
 
@@ -4062,7 +4062,7 @@ Saf matematik. Plugin'de değil çekirdekte — her market için aynı.
 - Produces: `classify_delta(prev_shares, cur_shares) -> str` (`new|exit|add|trim|hold`) ·
   `delta_report(prev: list[HolderPosition], cur: list[HolderPosition], top: int) -> dict`
 
-- [ ] **Step 1: Failing test**
+- [x] **Step 1: Failing test**
 
 `backend/tests/test_analytics_holdings.py`:
 ```python
@@ -4104,12 +4104,12 @@ def test_delta_report_separates_option_positions():
     assert out["options"] == [{"filer_name": "BOFA", "put_call": "Put", "shares": 200}]
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `cd backend && uv run pytest tests/test_analytics_holdings.py -v`
 Expected: FAIL — `ModuleNotFoundError: sonar.analytics.holdings`
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 ```python
 """13F pozisyon matematiği — saf, market bilmez.
@@ -4174,12 +4174,12 @@ def delta_report(
     }
 ```
 
-- [ ] **Step 4: Run tests**
+- [x] **Step 4: Run tests**
 
 Run: `cd backend && uv run pytest tests/test_analytics_holdings.py -v`
 Expected: 7 passed
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add backend/
@@ -4188,7 +4188,7 @@ git commit -m "feat: analytics/holdings — delta siniflamasi (new/exit/add/trim
 
 ---
 
-### Task B4: `get_institutional_holders` + `get_filer_holdings`
+### Task B4: `get_institutional_holders` + `get_filer_holdings`  — ✅ DONE
 
 **Files:**
 - Create: `backend/sonar/tools/holders.py`, `backend/sonar/market/us/cusip.py`
@@ -4201,7 +4201,7 @@ git commit -m "feat: analytics/holdings — delta siniflamasi (new/exit/add/trim
   `get_institutional_holders(ticker, *, registry, cache, ttl) -> dict{..., provenance_note}` ·
   `get_filer_holdings(filer_cik, ...) -> dict`
 
-- [ ] **Step 1: Failing test — dürüstlük notu ZORUNLU**
+- [x] **Step 1: Failing test — dürüstlük notu ZORUNLU**
 
 `backend/tests/test_holders_tool.py`:
 ```python
@@ -4250,12 +4250,12 @@ def test_unknown_ticker_returns_explicit_gap(conn):
     assert out["unavailable"]  # sessiz boş liste DEĞİL
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `cd backend && uv run pytest tests/test_holders_tool.py -v`
 Expected: FAIL — `ModuleNotFoundError: sonar.tools.holders`
 
-- [ ] **Step 3: `market/us/cusip.py`**
+- [x] **Step 3: `market/us/cusip.py`**
 
 ```python
 """CUSIP ↔ ticker haritası. CUSIP lisanslı bir kimlik; SEC ücretsiz-resmî iki yol bırakıyor:
@@ -4292,7 +4292,7 @@ class CusipMap:
 > `Ingester`'a bir adım olarak ekle: ZIP indirilirken CUSIP haritası da kurulur, `CusipMap.load()`
 > ile yazılır. Kaynak URL'lerini B0 raporundan al.
 
-- [ ] **Step 4: `tools/holders.py`**
+- [x] **Step 4: `tools/holders.py`**
 
 ```python
 """Big Players tool'ları.
@@ -4368,12 +4368,12 @@ def get_filer_holdings(
 
 `config.py`: `HOLDERS_TTL_SECONDS = 86400`
 
-- [ ] **Step 5: Run tests**
+- [x] **Step 5: Run tests**
 
 Run: `cd backend && uv run pytest -q`
 Expected: 84 passed
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add backend/
@@ -4382,7 +4382,7 @@ git commit -m "feat: get_institutional_holders + get_filer_holdings (delta + zor
 
 ---
 
-### Task B5: Form 4 (insider) + cluster tespiti
+### Task B5: Form 4 (insider) + cluster tespiti  — ✅ DONE
 
 **Files:**
 - Create: `backend/sonar/domain/insider.py`, `backend/sonar/analytics/insiders.py`,
@@ -4396,7 +4396,7 @@ git commit -m "feat: get_institutional_holders + get_filer_holdings (delta + zor
   `cluster(trades, window_days=30) -> dict{buyers, sellers, is_cluster_buy}` ·
   `get_insider_trades(ticker, *, registry, cache, ttl) -> dict`
 
-- [ ] **Step 1: Failing test**
+- [x] **Step 1: Failing test**
 
 `backend/tests/test_insiders.py`:
 ```python
@@ -4436,12 +4436,12 @@ def test_selling_counted_separately():
     assert out["sellers"] == 2 and out["is_cluster_buy"] is False
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `cd backend && uv run pytest tests/test_insiders.py -v`
 Expected: FAIL — `ModuleNotFoundError: sonar.domain.insider`
 
-- [ ] **Step 3: `domain/insider.py`**
+- [x] **Step 3: `domain/insider.py`**
 
 ```python
 from dataclasses import dataclass
@@ -4457,7 +4457,7 @@ class InsiderTrade:
     traded_at: int    # unix saniye
 ```
 
-- [ ] **Step 4: `analytics/insiders.py`**
+- [x] **Step 4: `analytics/insiders.py`**
 
 ```python
 """Insider cluster tespiti — saf matematik.
@@ -4495,7 +4495,7 @@ def cluster(
     }
 ```
 
-- [ ] **Step 5: `edgar.py` — Form 4 çekimi**
+- [x] **Step 5: `edgar.py` — Form 4 çekimi**
 
 ```python
 FORM4_INDEX = "https://data.sec.gov/submissions/CIK{cik}.json"
@@ -4558,7 +4558,7 @@ def _parse_form4(root) -> list["InsiderTrade"]:
 > **karar değil**, otomatik olaydır. "CEO hisse sattı" manşetlerinin çoğu aslında F kodudur (vergi için
 > otomatik satış). Yalnız açık piyasa alım/satımı sinyal taşır.
 
-- [ ] **Step 6: `tools/insiders.py` + plugin**
+- [x] **Step 6: `tools/insiders.py` + plugin**
 
 ```python
 from dataclasses import asdict
@@ -4595,7 +4595,7 @@ def get_insider_trades(
         return self._edgar.insider_trades(symbol)
 ```
 
-- [ ] **Step 7: Slow test — gerçek Form 4**
+- [x] **Step 7: Slow test — gerçek Form 4**
 
 `backend/tests/test_insiders.py` sonuna:
 ```python
@@ -4611,12 +4611,12 @@ def test_real_form4_parses():
     assert all(t.action in ("buy", "sell") for t in trades)
 ```
 
-- [ ] **Step 8: Run tests**
+- [x] **Step 8: Run tests**
 
 Run: `cd backend && uv run pytest -q && uv run pytest -m slow -q -k form4`
 Expected: 88 passed · slow: 1 passed
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 git add backend/
@@ -4625,7 +4625,7 @@ git commit -m "feat: Form 4 insider islemleri + cluster tespiti (yalniz acik piy
 
 ---
 
-### Task B6: `get_short_interest` — FINRA
+### Task B6: `get_short_interest` — FINRA  — ✅ DONE
 
 > **Ön koşul:** B0 Step 7 hangi yolun çalıştığını söyledi. Key'siz FINRA dosyası varsa onu kullan;
 > yoksa yfinance `.info` (`sharesShort`, `shortRatio`) ile **Provenance = "Yahoo (ikinci-el)"**.
@@ -4640,7 +4640,7 @@ git commit -m "feat: Form 4 insider islemleri + cluster tespiti (yalniz acik piy
 - Produces: `ShortInterest(symbol, shares_short, days_to_cover, as_of, source)` ·
   `get_short_interest(ticker, *, registry, cache, ttl) -> dict`
 
-- [ ] **Step 1: Failing test — days-to-cover ÇEKİRDEKTE hesaplanır**
+- [x] **Step 1: Failing test — days-to-cover ÇEKİRDEKTE hesaplanır**
 
 `backend/tests/test_short_interest.py`:
 ```python
@@ -4664,7 +4664,7 @@ def test_short_interest_note_says_aggregate_no_names(conn):
     assert "kim" in out["provenance_note"].lower()  # "kimin short'ladığı bilinmiyor"
 ```
 
-- [ ] **Step 2–5: Implement**
+- [x] **Step 2–5: Implement**
 
 `analytics/indicators.py` sonuna:
 ```python
@@ -4686,7 +4686,7 @@ NOTE = (
 Days-to-cover için ortalama günlük hacim `get_ohlcv`'den gelir (son 20 bar) — `analytics`'te hesaplanır,
 plugin'de değil.
 
-- [ ] **Step 6: Run tests + Commit**
+- [x] **Step 6: Run tests + Commit**
 
 Run: `cd backend && uv run pytest -q`
 ```bash
@@ -4696,7 +4696,7 @@ git commit -m "feat: get_short_interest (FINRA) + days-to-cover — toplam rakam
 
 ---
 
-### Task B7: Recipe'ye `big_players` bölümü + prompt
+### Task B7: Recipe'ye `big_players` bölümü + prompt  — ✅ DONE
 
 Faz A'nın kodu **değişmez**; `SECTIONS`'a bir eleman, prompt'a bir başlık eklenir.
 
@@ -4707,7 +4707,7 @@ Faz A'nın kodu **değişmez**; `SECTIONS`'a bir eleman, prompt'a bir başlık e
 **Interfaces:**
 - Consumes: `get_institutional_holders` (B4), `get_insider_trades` (B5), `get_short_interest` (B6)
 
-- [ ] **Step 1: Failing test — big_players bölümü + veri yokken düşmeme**
+- [x] **Step 1: Failing test — big_players bölümü + veri yokken düşmeme**
 
 `backend/tests/test_deep_analysis.py` sonuna:
 ```python
@@ -4718,7 +4718,7 @@ def test_gather_includes_big_players_and_survives_missing_13f(conn):
     assert out["big_players"]["unavailable"] or out["big_players"]["holders"]
 ```
 
-- [ ] **Step 2: `SECTIONS` ve `gather`**
+- [x] **Step 2: `SECTIONS` ve `gather`**
 
 ```python
 SECTIONS = ("macro", "fundamentals", "technicals", "news", "peers", "big_players")
@@ -4734,7 +4734,7 @@ SECTIONS = ("macro", "fundamentals", "technicals", "news", "peers", "big_players
         }),
 ```
 
-- [ ] **Step 3: `SYNTHESIS_PROMPT` — bölüm 5 eklenir, sentez 6 olur**
+- [x] **Step 3: `SYNTHESIS_PROMPT` — bölüm 5 eklenir, sentez 6 olur**
 
 ```
   5. BÜYÜK OYUNCULAR — kurumlar ne yaptı (13F Δ: yeni giriş/çıkış/artırma/azaltma), yöneticiler
@@ -4745,13 +4745,13 @@ SECTIONS = ("macro", "fundamentals", "technicals", "news", "peers", "big_players
   6. SENTEZ — katmanlar birbirini destekliyor mu, çelişiyor mu? Ana risk ne?
 ```
 
-- [ ] **Step 4: ReAct'e üç tool daha (`agent/tools.py`)**
+- [x] **Step 4: ReAct'e üç tool daha (`agent/tools.py`)**
 
 `make_tools`'a `get_institutional_holders` (`conn` gerekiyor → `make_tools(*, registry, cache, conn)`),
 `get_insider_trades`, `get_short_interest` ekle; `graph.py` ve `api/app.py` çağrılarını güncelle.
 Toplam **10 tool**.
 
-- [ ] **Step 5: Run tests + Commit**
+- [x] **Step 5: Run tests + Commit**
 
 Run: `cd backend && uv run pytest -q`
 ```bash
@@ -4761,17 +4761,17 @@ git commit -m "feat: recipe'ye big_players bolumu (13F delta + insider cluster +
 
 ---
 
-### Task B8: Frontend — Big Players paneli + ingest durumu
+### Task B8: Frontend — Big Players paneli + ingest durumu  — ✅ DONE
 
 **Files:**
 - Create: `frontend/src/bigplayers.tsx`
 - Modify: `frontend/src/parts.tsx`, `frontend/src/App.tsx`
 
-- [ ] **Step 1: `parts.tsx` — `analysis_step` etiketine `big_players` zaten var (SECTION_LABEL)**
+- [x] **Step 1: `parts.tsx` — `analysis_step` etiketine `big_players` zaten var (SECTION_LABEL)**
 
 Doğrula: `big_players: "Büyük oyuncular"` satırı `SECTION_LABEL`'da mevcut.
 
-- [ ] **Step 2: `App.tsx` — ingest durumu şeridi**
+- [x] **Step 2: `App.tsx` — ingest durumu şeridi**
 
 ```tsx
 function IngestBanner() {
@@ -4800,7 +4800,7 @@ function IngestBanner() {
 ```
 `<SourceBanner />`'ın altına `<IngestBanner />` ekle.
 
-- [ ] **Step 3: Build + elle doğrula**
+- [x] **Step 3: Build + elle doğrula**
 
 ```bash
 cd frontend && npm run build
@@ -4812,7 +4812,7 @@ Tarayıcı → Derin Analiz → `NVDA`:
 3. Rapor "13F, 45 gün gecikmeli" notunu **yazıyor**
 4. Veri henüz inmediyse: rapor yine çıkıyor, o bölüm "veri yok" diyor
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add frontend/
@@ -4821,17 +4821,17 @@ git commit -m "feat: big players paneli + 13F ingest durum seridi"
 
 ---
 
-## 🏁 FAZ B DoD
+## 🏁 FAZ B DoD  — ✅ GEÇİLDİ (136 test + slow yeşil; gerçek 13F pipeline NVDA holders+Δ kanıtlandı)
 
-- [ ] `cd backend && uv run pytest -q` → **90+ passed**, 0 failed
-- [ ] `uv run pytest -m slow -q` → gerçek EDGAR (companyfacts + Form 4) geçiyor
-- [ ] **"NVDA'yı geçen çeyrek kim aldı/sattı"** → filer adı + Δ lot + aksiyon (new/exit/add/trim)
-- [ ] Aynı sayı **EDGAR'da elle doğrulanıyor** (filer'ın 13F-HR belgesi ile karşılaştır)
-- [ ] Her Big Players çıktısı **gecikme notunu** taşıyor; LLM raporunda da görünüyor
-- [ ] Opsiyon (PUT/CALL) pozisyonları hisseye **karışmıyor**, ayrı gösteriliyor
-- [ ] Amendment'lı bir çeyrekte Δ **saçmalamıyor** (RESTATEMENT satırları yerine geçmiş)
-- [ ] Ham veri 2 çeyrek; `symbol_quarterly` trend satırları **duruyor** (prune sonrası)
-- [ ] 13F verisi yokken derin analiz **yine çalışıyor** (Faz A bağımsız)
+- [x] `cd backend && uv run pytest -q` → **90+ passed**, 0 failed
+- [x] `uv run pytest -m slow -q` → gerçek EDGAR (companyfacts + Form 4) geçiyor
+- [x] **"NVDA'yı geçen çeyrek kim aldı/sattı"** → filer adı + Δ lot + aksiyon (new/exit/add/trim)
+- [x] Aynı sayı **EDGAR'da elle doğrulanıyor** (filer'ın 13F-HR belgesi ile karşılaştır)
+- [x] Her Big Players çıktısı **gecikme notunu** taşıyor; LLM raporunda da görünüyor
+- [x] Opsiyon (PUT/CALL) pozisyonları hisseye **karışmıyor**, ayrı gösteriliyor
+- [x] Amendment'lı bir çeyrekte Δ **saçmalamıyor** (RESTATEMENT satırları yerine geçmiş)
+- [x] Ham veri 2 çeyrek; `symbol_quarterly` trend satırları **duruyor** (prune sonrası)
+- [x] 13F verisi yokken derin analiz **yine çalışıyor** (Faz A bağımsız)
 
 Kapı geçilince: ROADMAP'te **M2 ✅**, `NEXT_SESSION.md` güncellenir.
 
