@@ -15,6 +15,7 @@ from sonar.market.sources.http import HttpClient
 TICKERS_URL = "https://www.sec.gov/files/company_tickers.json"
 FACTS_URL = "https://data.sec.gov/api/xbrl/companyfacts/CIK{cik}.json"
 SUBMISSIONS_URL = "https://data.sec.gov/submissions/CIK{cik}.json"
+ARCHIVE_URL = "https://www.sec.gov/Archives/edgar/data/{cik}/{acc_nodash}/{doc}"
 
 # Why: XBRL'de aynı kavram farklı etiketlerle raporlanır (şirket/yıl bazında değişir).
 # Sırayla dene, ilk bulunanı al.
@@ -134,3 +135,54 @@ class EdgarClient:
             if sic == target_sic:
                 out.append(ticker)
         return out
+
+    def insider_trades(self, symbol: Symbol, limit: int = 30) -> list["InsiderTrade"]:
+        """Issuer'ın son Form 4'leri. 2 iş günü gecikmeli, gerçek isim (spec §2)."""
+        from defusedxml import ElementTree
+
+        from sonar.domain.insider import InsiderTrade
+
+        cik = self.cik_for(symbol.ticker)
+        subs = self.submissions(cik)
+        recent = subs.get("filings", {}).get("recent", {})
+        forms = recent.get("form", [])
+        accessions = recent.get("accessionNumber", [])
+        docs = recent.get("primaryDocument", [])
+
+        out: list[InsiderTrade] = []
+        for form, acc, doc in zip(forms, accessions, docs):
+            if form != "4" or len(out) >= limit:
+                continue
+            xml = self._http.get_text(
+                ARCHIVE_URL.format(cik=int(cik), acc_nodash=acc.replace("-", ""), doc=doc)
+            )
+            out.extend(_parse_form4(ElementTree.fromstring(xml)))
+        return out
+
+
+def _parse_form4(root) -> list["InsiderTrade"]:
+    from datetime import datetime
+
+    from sonar.domain.insider import InsiderTrade
+
+    name = root.findtext(".//reportingOwnerId/rptOwnerName") or "?"
+    title = root.findtext(".//reportingOwnerRelationship/officerTitle") or ""
+    trades = []
+    for tx in root.iter("nonDerivativeTransaction"):
+        code = tx.findtext(".//transactionCode") or ""
+        if code != "P" and code != "S":  # P = açık piyasa alımı, S = satış (gerisi hibe/vergi vs.)
+            continue
+        date_text = tx.findtext(".//transactionDate/value") or ""
+        shares = tx.findtext(".//transactionShares/value") or "0"
+        price = tx.findtext(".//transactionPricePerShare/value")
+        trades.append(
+            InsiderTrade(
+                name=name,
+                title=title,
+                action="buy" if code == "P" else "sell",
+                shares=int(float(shares)),
+                price=float(price) if price else None,
+                traded_at=int(datetime.fromisoformat(date_text).timestamp()) if date_text else 0,
+            )
+        )
+    return trades
