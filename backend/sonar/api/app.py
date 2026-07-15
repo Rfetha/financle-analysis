@@ -1,5 +1,7 @@
 import asyncio
+import os
 import time
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import StreamingResponse
@@ -38,10 +40,46 @@ def create_app(
     cache: Cache | None = None,
     streamer=None,
     analyzer=None,
+    conn=None,
 ) -> FastAPI:
-    app = FastAPI(title="Sonar")
     registry = registry or _default_registry()
-    cache = cache or Cache(connect(config.DB_PATH))
+    if cache is None:
+        conn = conn or connect(config.DB_PATH)
+        cache = Cache(conn)
+
+    _state: dict = {"ingester": None}  # lifespan yazar, status endpoint okur
+    _ingest_tasks: set[asyncio.Task] = set()  # Why: GC referansı kaybetmesin (Python gotcha)
+
+    @asynccontextmanager
+    async def lifespan(app: FastAPI):
+        # 13F arka plan ingestion — açılışta (spec §7: sessiz değil, /api/ingest/status'tan görünür).
+        if not os.environ.get("SONAR_SKIP_INGEST"):  # testler ve CI atlar
+            from sonar.market.sources.http import HttpClient
+            from sonar.market.us.cusip import CusipMap
+            from sonar.market.us.edgar import TICKERS_URL
+            from sonar.store.holdings_repo import HoldingsRepo
+            from sonar.store.ingest import Ingester
+
+            ingest_conn = conn or connect(config.DB_PATH)
+            http = HttpClient(f"Sonar/0.1 ({os.environ.get('SONAR_CONTACT', 'sonar@localhost')})")
+            loop = asyncio.get_running_loop()
+            tickers = await loop.run_in_executor(None, http.get_json, TICKERS_URL)
+            ingester = Ingester(HoldingsRepo(ingest_conn), CusipMap(ingest_conn), http, tickers)
+            _state["ingester"] = ingester
+            task = asyncio.create_task(ingester.run())  # fire-and-forget; hata state'te görünür
+            _ingest_tasks.add(task)
+            task.add_done_callback(_ingest_tasks.discard)
+        yield
+
+    app = FastAPI(title="Sonar", lifespan=lifespan)
+
+    @app.get("/api/ingest/status")
+    def ingest_status() -> dict:
+        ingester = _state["ingester"]
+        if ingester is None:
+            return {"status": "idle", "progress": 0.0, "quarter": "", "message": ""}
+        s = ingester.state
+        return {"status": s.status, "progress": s.progress, "quarter": s.quarter, "message": s.message}
 
     def _get_streamer():
         # Agent'ı lazy kur: model init ilk chat isteğinde (model katmanı env'den seçer).
