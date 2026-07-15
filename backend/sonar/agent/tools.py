@@ -7,12 +7,15 @@ from sonar import config
 from sonar.market.base import UnknownSymbol, Unsupported
 from sonar.market.registry import MarketRegistry
 from sonar.store.cache import Cache
+from sonar.tools import holders
 from sonar.tools.fundamentals import get_fundamentals
+from sonar.tools.insiders import get_insider_trades
 from sonar.tools.macro import get_macro_snapshot
 from sonar.tools.news import get_news
 from sonar.tools.ohlcv import get_ohlcv
 from sonar.tools.peers import get_peers
 from sonar.tools.quote import get_quote
+from sonar.tools.short_interest import get_short_interest
 from sonar.tools.technicals import get_technicals
 
 
@@ -29,8 +32,8 @@ def make_quote_tool(*, registry: MarketRegistry, cache: Cache, ttl: int):
     return get_stock_quote
 
 
-def make_tools(*, registry: MarketRegistry, cache: Cache) -> list:
-    """7 deep tool: ADR-0007 — recipe'yle aynı `sonar.tools.*` çağrıları, @tool sarmalı."""
+def make_tools(*, registry: MarketRegistry, cache: Cache, conn=None) -> list:
+    """10 deep tool: ADR-0007 — recipe'yle aynı `sonar.tools.*` çağrıları, @tool sarmalı."""
     ctx = {"registry": registry, "cache": cache}
 
     def guard(fn):
@@ -78,7 +81,29 @@ def make_tools(*, registry: MarketRegistry, cache: Cache) -> list:
         """Aynı sektördeki (SEC SIC kodu) rakip şirketler."""
         return guard(lambda: get_peers(ticker, **ctx, ttl=config.PEERS_TTL_SECONDS))
 
+    @tool
+    def get_institutional_holders_tool(ticker: str) -> dict:
+        """13F kurumsal sahiplik: çeyreklik Δ (yeni giriş/çıkış/artırma/azaltma), 45 gün gecikmeli."""
+        return guard(
+            lambda: holders.get_institutional_holders(
+                ticker, conn=conn, cache=cache, ttl=config.HOLDERS_TTL_SECONDS
+            )
+        )
+
+    @tool
+    def get_insider_trades_tool(ticker: str) -> dict:
+        """Form 4 içeri (yönetici/direktör) açık piyasa alım-satımları + cluster buy tespiti."""
+        return guard(lambda: get_insider_trades(ticker, **ctx, ttl=config.INSIDERS_TTL_SECONDS))
+
+    @tool
+    def get_short_interest_tool(ticker: str) -> dict:
+        """Toplam short interest ve days-to-cover (kimin short'ladığı bilinmiyor)."""
+        return guard(lambda: get_short_interest(ticker, **ctx, ttl=config.SHORT_TTL_SECONDS))
+
     get_macro_snapshot_tool.name = "get_macro_snapshot"
+    get_institutional_holders_tool.name = "get_institutional_holders"
+    get_insider_trades_tool.name = "get_insider_trades"
+    get_short_interest_tool.name = "get_short_interest"
 
     return [
         make_quote_tool(registry=registry, cache=cache, ttl=config.QUOTE_TTL_SECONDS),
@@ -88,4 +113,7 @@ def make_tools(*, registry: MarketRegistry, cache: Cache) -> list:
         get_stock_news,
         get_macro_snapshot_tool,
         get_sector_peers,
+        get_institutional_holders_tool,
+        get_insider_trades_tool,
+        get_short_interest_tool,
     ]

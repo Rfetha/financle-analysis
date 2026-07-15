@@ -23,7 +23,7 @@ def build_agent(*, model, tools, checkpointer=None):
     )
 
 
-def make_streamer(*, registry, cache):
+def make_streamer(*, registry, cache, conn=None):
     """(message, thread_id) -> Sonar SSE event akışı. Model katmanı env'den seçer (ADR-0002)."""
     agent = None
 
@@ -35,7 +35,9 @@ def make_streamer(*, registry, cache):
 
             model = default_model()
             logger.info("agent kuruldu — model: {}", getattr(model, "model_name", model))
-            agent = build_agent(model=model, tools=make_tools(registry=registry, cache=cache))
+            agent = build_agent(
+                model=model, tools=make_tools(registry=registry, cache=cache, conn=conn)
+            )
         async for ev in agent.astream_events(
             {"messages": [("user", message)]},
             config={"configurable": {"thread_id": thread_id}},

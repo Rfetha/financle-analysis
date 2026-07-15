@@ -43,9 +43,8 @@ def create_app(
     conn=None,
 ) -> FastAPI:
     registry = registry or _default_registry()
-    if cache is None:
-        conn = conn or connect(config.DB_PATH)
-        cache = Cache(conn)
+    conn = conn or connect(config.DB_PATH)
+    cache = cache or Cache(conn)
 
     _state: dict = {"ingester": None}  # lifespan yazar, status endpoint okur
     _ingest_tasks: set[asyncio.Task] = set()  # Why: GC referansı kaybetmesin (Python gotcha)
@@ -87,7 +86,7 @@ def create_app(
         if streamer is None:
             from sonar.agent.graph import make_streamer
 
-            streamer = make_streamer(registry=registry, cache=cache)
+            streamer = make_streamer(registry=registry, cache=cache, conn=conn)
         return streamer
 
     def _get_analyzer():
@@ -95,7 +94,7 @@ def create_app(
         if analyzer is None:
             from sonar.agent.recipes.deep_analysis import make_analyzer
 
-            analyzer = lambda: make_analyzer(registry=registry, cache=cache)  # noqa: E731
+            analyzer = lambda: make_analyzer(registry=registry, cache=cache, conn=conn)  # noqa: E731
         return analyzer()
 
     @app.get("/api/health")

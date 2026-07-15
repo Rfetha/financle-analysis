@@ -32,13 +32,14 @@ def test_quote_tool_unknown_symbol_returns_error(conn):
     assert "error" in out
 
 
-def test_make_tools_exposes_seven_deep_tools(conn):
+def test_make_tools_exposes_ten_deep_tools(conn):
     reg = MarketRegistry()
     reg.register(USMarketPlugin())
-    names = {t.name for t in make_tools(registry=reg, cache=Cache(conn))}
+    names = {t.name for t in make_tools(registry=reg, cache=Cache(conn), conn=conn)}
     assert names == {
         "get_stock_quote", "get_price_history", "get_technical_indicators",
         "get_company_fundamentals", "get_stock_news", "get_macro_snapshot", "get_sector_peers",
+        "get_institutional_holders", "get_insider_trades", "get_short_interest",
     }
 
 

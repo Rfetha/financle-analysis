@@ -6,6 +6,7 @@ from sonar.market.registry import MarketRegistry
 from sonar.store.cache import Cache
 from sonar.domain.candle import Candle, OhlcvSeries
 from sonar.domain.fundamentals import Fundamentals
+from sonar.domain.holdings import ShortInterest
 from sonar.domain.macro import GlobalSnapshot, LocalSnapshot, MacroSnapshot
 from sonar.domain.news import NewsItem
 from sonar.domain.quote import Provenance
@@ -39,11 +40,17 @@ class PartialMarket(BaseMarketPlugin):
             Provenance("FRED", 1.0),
         )
 
+    def get_insider_trades(self, symbol):
+        return []
+
+    def get_short_interest(self, symbol):
+        return ShortInterest(symbol, shares_short=0, days_to_cover=None, as_of="2026-01-01", source="fake")
+
 
 def _ctx(conn):
     reg = MarketRegistry()
     reg.register(PartialMarket())
-    return {"registry": reg, "cache": Cache(conn)}
+    return {"registry": reg, "cache": Cache(conn), "conn": conn}
 
 
 def test_gather_marks_failed_section_unavailable_and_keeps_others(conn):
@@ -53,6 +60,14 @@ def test_gather_marks_failed_section_unavailable_and_keeps_others(conn):
     assert out["technicals"]["rsi"] == 100.0
     assert out["macro"]["global"]["vix"] == 15.1
     assert out["news"]["items"][0]["title"] == "Haber"
+
+
+def test_gather_includes_big_players_with_unavailable_holders(conn):
+    """13F DB boş → holders unavailable ama insiders/short çalışır — rapor ayakta (B7)."""
+    out = gather("NVDA", **_ctx(conn))
+    assert out["big_players"]["holders"]["unavailable"]  # CUSIP haritada yok
+    assert out["big_players"]["insiders"]["trades"] == []
+    assert out["big_players"]["short"]["shares_short"] == 0
 
 
 @pytest.mark.asyncio
