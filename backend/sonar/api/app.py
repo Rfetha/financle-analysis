@@ -1,3 +1,4 @@
+import asyncio
 import time
 
 from fastapi import FastAPI, HTTPException
@@ -128,6 +129,21 @@ def create_app(
                 yield events.sse(events.ERROR, {"message": explain(e)})
             logger.info("analiz[{}] ✓ {:.1f}s", req.ticker, time.perf_counter() - started)
             yield events.sse(events.DONE, {})
+
+        return StreamingResponse(stream(), media_type="text/event-stream")
+
+    @app.get("/api/stream/quotes")
+    async def stream_quotes(tickers: str) -> StreamingResponse:
+        from sonar.api.quotes import quote_stream
+
+        symbols = [t.strip() for t in tickers.split(",") if t.strip()]
+
+        async def stream():
+            try:
+                async for etype, data in quote_stream(symbols, registry=registry, cache=cache):
+                    yield events.sse(etype, data)
+            except asyncio.CancelledError:
+                raise  # Why: istemci bağlantıyı kapattı — yutma, propagate et (CLAUDE.md §5)
 
         return StreamingResponse(stream(), media_type="text/event-stream")
 
