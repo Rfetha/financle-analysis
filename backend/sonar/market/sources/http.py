@@ -4,6 +4,7 @@ SEC EDGAR zorunlu tutuyor: gerçek iletişim bilgisi içeren User-Agent ve ≤10
 İhlal = IP ban. Bunu üç kaynak (EDGAR, FRED, FINRA) paylaşıyor → tek yerde (Rule of Three).
 """
 
+import threading
 import time
 from typing import Callable
 
@@ -27,6 +28,7 @@ class HttpClient:
         self._now = now
         self._sleep = sleep
         self._last: float | None = None
+        self._throttle_lock = threading.Lock()
         self._client = httpx.Client(
             headers={"User-Agent": user_agent, **(extra_headers or {})},
             timeout=30.0,
@@ -37,11 +39,15 @@ class HttpClient:
     def _throttle(self) -> None:
         # Why: _last=None yerine 0.0 kullanılsaydı, gerçek time.monotonic()
         # dışındaki (ör. testte donmuş) saatlerde ilk çağrı da gereksiz bekletilirdi.
-        if self._last is not None:
-            wait = self._min_interval - (self._now() - self._last)
-            if wait > 0:
-                self._sleep(wait)
-        self._last = self._now()
+        # Why: DeepAnalysis paralel thread'leri (run_in_executor) bu HttpClient'i
+        # paylaşıyor; lock sleep boyunca da tutulmazsa iki thread aynı stale
+        # self._last'i okuyup ikisi de beklemeden geçebilir (SEC ≤10 req/s ihlali).
+        with self._throttle_lock:
+            if self._last is not None:
+                wait = self._min_interval - (self._now() - self._last)
+                if wait > 0:
+                    self._sleep(wait)
+            self._last = self._now()
 
     def _get(self, url: str) -> httpx.Response:
         last_error: Exception | None = None
